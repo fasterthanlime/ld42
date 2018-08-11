@@ -15,10 +15,7 @@
     {
       "label": "Run",
       "type": "shell",
-      "command": "make run",
-      "group": {
-        "kind": "run"
-      }
+      "command": "make run"
     }
   ]
 }

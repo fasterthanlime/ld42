@@ -1,0 +1,8 @@
+{
+  "triggerTaskOnSave.tasks": {
+    "Build": [
+      "**/*.moon"
+    ]
+  },
+  "triggerTaskOnSave.restart": false
+}
