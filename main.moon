@@ -2,21 +2,37 @@ lick = require "lick"
 lick.reset = true -- reload game every time it's compiled
 
 import CheckCollision from require "utils"
-import graphics, physics, mouse from love
+import graphics, mouse from love
 
 local buildUI
+local newImage
 
-screenWidth = 800
+numCols = 10
+numRows = 10
+slotSide = 60
+
+initialMapX = 30
+initialMapY = 80
+
+screenWidth = 1000
 screenHeight = 800
 
-world = nil
-objects = {}
+initialPaletteX = 10
+paletteItemsPerRow = 4
+paletteItemSide = 40
+paletteItemSpacing = 15
+paletteTotalWidth = initialPaletteX + (paletteItemSide+paletteItemSpacing) * paletteItemsPerRow + 30
+
 text = ""
 startedAt = nil
 font = nil
 paused = true
 roundTicks = 0
 stepIndex = 0
+buildingTab = "road"
+hasHover = false
+
+map = {}
 
 uiObjects = {}
 
@@ -26,15 +42,36 @@ cursors = {
   "tri-bottomleft"
   "tri-bottomright"
 }
-currentCursor = 1
+currentCursor = "pointer"
+currentBuilding = nil
 
 buttons = {
   "play"
   "pause"
+  "slot"
 }
 buttonExtras = {
   "toolbar"
   "bg"
+}
+
+buildings = {
+  culture: {
+    "cinema"
+    "library"
+  }
+  infra: {
+    "power-plant"
+  }
+  road: {
+    "road-i"
+    "road--"
+    "road-t"
+    "road-left-top"
+    "road-left-bottom"
+    "road-right-top"
+    "road-right-bottom"
+  }
 }
 
 images = {}
@@ -47,15 +84,23 @@ step = ->
   stepIndex += 1
 
 updateUI = ->
+  hasHover = false
   for obj in *uiObjects
-    obj.hover = uiObjectTouchesMouse(obj)
+    if obj.onclick
+      if obj.hover = uiObjectTouchesMouse(obj)
+        hasHover = true
+        break
+
+  if hasHover
+    currentCursor = "hand"
+  else
+    currentCursor = "pointer"
   text = "started #{startedAt.hour}:#{startedAt.min}:#{startedAt.sec} | step #{stepIndex}"
 
 updateSim = (dt) ->
-  world\update dt
   roundTicks += dt
-  if roundTicks > 0.5
-    roundTicks -= 0.5
+  if roundTicks > 0.1
+    roundTicks -= 0.1
     step()
 
 love.update = (dt) ->
@@ -63,43 +108,12 @@ love.update = (dt) ->
     updateSim dt
   updateUI!
 
-love.wheelmoved = (x, y) ->
-  if y > 0
-    currentCursor -= 1
-  else if y < 0
-    currentCursor += 1
-  currentCursor = math.min(#cursors, math.max(1, currentCursor))
-
 love.mousepressed = (x, y, button, istouch, presses) ->
   for obj in *uiObjects
     if uiObjectTouchesMouse(obj) and obj.onclick
       obj.onclick!
 
-makeButton = (icon, onclick) ->
-  {
-    loc: "toolbar"
-    :icon
-    :onclick
-  }
-
-standardButtons = {
-  pause: {
-    loc: "toolbar"
-    icon: "pause"
-    onclick: (->
-      paused = true
-      buildUI!
-    )
-  }
-  play: {
-    loc: "toolbar"
-    icon: "play"
-    onclick: (->
-      paused = false
-      buildUI!
-    )
-  }
-}
+local standardButtons
 
 buildUI = ->
   uiObjects = {}
@@ -109,67 +123,134 @@ buildUI = ->
   else
     table.insert uiObjects, standardButtons.pause
 
+  for b in *(buildings[buildingTab])
+    obj = {
+      loc: "palette"
+      icon: images.buildings[b]
+      onclick: (->
+        currentBuilding = b
+      )
+    }
+    unless obj.icon 
+      error("could not find icon for building #{b}")
+    table.insert uiObjects, obj
+    io.write "added building #{b}, now has #{#uiObjects} ui objects\n"
+
+  for i=0,numCols
+    for j=0,numRows
+      if b = map[i+j*numCols]
+        table.insert uiObjects, {
+          :i, :j
+          loc: "map"
+          icon: images.buildings[b]
+        }
+
+  for i=0,numCols
+    for j=0,numRows
+      table.insert uiObjects, {
+        :i, :j
+        loc: "map"
+        icon: images.buttons.slot
+        onclick: (->
+          if currentBuilding
+            map[i+j*numCols] = currentBuilding
+            buildUI!
+        )
+      }
+
   -- now do layout
   do
     toolbarX = 10
     toolbarY = 10
+        
+    paletteBaseX = screenWidth - paletteTotalWidth
+    paletteX = initialPaletteX
+    paletteY = 100
+    paletteN = 0
 
-    for obj in *uiObjects
+    for i, obj in ipairs uiObjects
+      unless obj
+        error("uiObject #{i} is nil")
+
+      obj.hover = false
+      unless obj.icon
+        error("uiObject #{i} has nil icon (loc #{obj.loc}, onclick #{obj.onclick})")
+
       switch obj.loc
         when "toolbar"
           obj.x = toolbarX
           obj.y = toolbarY
           obj.w = 40
           obj.h = 40
-          obj.hover = false
           toolbarX += 50
+        when "palette"
+          obj.x = paletteX + paletteBaseX
+          obj.y = paletteY
+          obj.w = paletteItemSide
+          obj.h = paletteItemSide
+
+          paletteN += 1
+          paletteX += paletteItemSide + paletteItemSpacing
+          if paletteN >= paletteItemsPerRow
+            paletteN = 0
+            paletteX = initialPaletteX
+            paletteY += paletteItemSide + paletteItemSpacing
+        when "map"
+          obj.x = initialMapX + obj.i * slotSide
+          obj.y = initialMapY + obj.j * slotSide
+          obj.w = slotSide
+          obj.h = slotSide
+        else
+          error("unknown location #{obj.loc}")
 
 love.load = ->
+  for i=0,numCols*numRows
+    map[i] = nil
+
   mouse.setVisible false
   startedAt = os.date '*t' 
   font = graphics.newFont "fonts/BeggarsExtended.ttf", 28
 
-  physics.setMeter 64 
-  world = physics.newWorld 0, 9.18*64, true 
-
-  objects.ball = {}
-  objects.ball.body = physics.newBody world, 650/2, 650/2, "dynamic"
-  objects.ball.shape = physics.newCircleShape 20
-  objects.ball.fixture = physics.newFixture objects.ball.body, objects.ball.shape, 1
-  objects.ball.fixture\setRestitution 0.9
-
   images.cursors = {}
   for k in *cursors
-    images.cursors[k] = graphics.newImage "art/cursors/#{k}.png"
+    images.cursors[k] = newImage "art/cursors/#{k}.png"
 
   images.buttons = {}
   for k in *buttons
-    images.buttons[k] = graphics.newImage "art/buttons/#{k}.png"
+    images.buttons[k] = newImage "art/buttons/#{k}.png"
 
   images.buttonExtras = {}
   for k in *buttonExtras
-    images.buttonExtras[k] = graphics.newImage "art/buttons/#{k}.png"
+    images.buttonExtras[k] = newImage "art/buttons/#{k}.png"
+
+  images.buildings = {}
+  for cat, catBuildings in pairs buildings
+    for k in *catBuildings
+      images.buildings[k] = newImage "art/buildings/#{k}.png"
+
+  standardButtons = {
+    pause: {
+      loc: "toolbar"
+      icon: images.buttons.pause
+      onclick: (->
+        paused = true
+        buildUI!
+      )
+    }
+    play: {
+      loc: "toolbar"
+      icon: images.buttons.play
+      onclick: (->
+        paused = false
+        buildUI!
+      )
+    }
+  }
 
   buildUI!
 
-drawBG = ->
-  do
-    offY = 80
-    offX = 60
-    side = 60
-    halfSide = side / 2
-    graphics.setColor 0.2, 0.2, 0.2
-
-    for i=0,10
-      for j=0,10
-        x = i * halfSide*2 + halfSide + offX
-        y = j * halfSide*2 + halfSide + offY
-        graphics.circle "fill", x, y, halfSide-2
-
 drawFG = ->
-  if ball = objects.ball
-    graphics.setColor 0.76, 0.18, 0.05
-    graphics.circle "fill", ball.body\getX!, ball.body\getY!, ball.shape\getRadius!
+  nil -- muffin
 
 drawUI = ->
   graphics.reset!
@@ -178,27 +259,48 @@ drawUI = ->
   graphics.print text, 20, 800-40
 
   do 
-    graphics.reset!
-    graphics.draw images.buttonExtras.toolbar, 0, 0
-
     for obj in *uiObjects
       graphics.reset!
       if obj.hover
         graphics.setColor 1, 1, 1
       else
-        graphics.setColor 0.9, 0.9, 0.9
+        graphics.setColor 0.8, 0.8, 0.8
       x, y = obj.x, obj.y
-      graphics.draw images.buttonExtras.bg, x, y
-      graphics.reset!
-      graphics.draw images.buttons[obj.icon], x, y
+
+      scale = 1
+      angle = 0
+
+      switch obj.loc 
+        when "palette"
+          scale = 0.75
+          angle = obj.hover and 0 or 3.14 * 1/64
+
+      switch obj.loc 
+        when "toolbar"
+          graphics.draw images.buttonExtras.bg, x, y, angle, scale, scale
+
+      graphics.draw obj.icon, x, y, angle, scale, scale
 
   do
     x, y = mouse.getPosition!
     graphics.reset!
-    img = images.cursors[cursors[currentCursor]]
+    img = images.cursors[currentCursor]
     graphics.draw img, x, y
+    if currentBuilding
+      img = images.buildings[currentBuilding]
+      scale = 0.5
+      x += 16
+      y += 16
+      graphics.setColor 0.6, 1.0, 0.6, 0.8
+      graphics.draw img, x, y, 0, scale, scale
 
 love.draw = ->
-  drawBG!
   drawFG!
   drawUI!
+
+newImage = (path) ->
+  img = graphics.newImage path
+  unless img
+    error("image not found: #{img}")
+  io.write "loaded #{path}\n"
+  img
