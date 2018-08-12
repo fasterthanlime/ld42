@@ -64,13 +64,17 @@ buildings = {
     "power-plant"
   }
   road: {
+    "road-right-top"
+    "road-left-top"
+    "road-right-bottom"
+    "road-left-bottom"
+    "road-t-right"
+    "road-t-left"
+    "road-t-down"
+    "road-t-up"
+    "road-t"
     "road-i"
     "road--"
-    "road-t"
-    "road-left-top"
-    "road-left-bottom"
-    "road-right-top"
-    "road-right-bottom"
   }
   misc: {
     "arrow"
@@ -104,13 +108,17 @@ dir_to_angle = (d) ->
     else 0
 
 road_mappings = {
-  "road-i": {dir.u, dir.d},
-  "road--": {dir.l, dir.r},
-  "road-t": {dir.u, dir.d, dir.l, dir.r},
-  "road-left-top": {dir.l, dir.u},
-  "road-left-bottom": {dir.l, dir.d},
-  "road-right-top": {dir.r, dir.u},
-  "road-right-bottom": {dir.r, dir.d},
+  "road-i": {dir.u, dir.d}
+  "road--": {dir.l, dir.r}
+  "road-t": {dir.u, dir.d, dir.l, dir.r}
+  "road-left-top": {dir.l, dir.u}
+  "road-left-bottom": {dir.l, dir.d}
+  "road-right-top": {dir.r, dir.u}
+  "road-right-bottom": {dir.r, dir.d}
+  "road-t-right": {dir.r, dir.d, dir.u}
+  "road-t-left": {dir.l, dir.d, dir.u}
+  "road-t-up": {dir.u, dir.l, dir.r}
+  "road-t-down": {dir.d, dir.l, dir.r}
 }
 
 images = {}
