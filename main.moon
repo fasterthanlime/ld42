@@ -2,10 +2,11 @@ lick = require "lick"
 lick.reset = true -- reload game every time it's compiled
 
 import CheckCollision from require "utils"
-import graphics, mouse from love
+import graphics, mouse, keyboard from love
 
 local buildUI
 local newImage
+local buildRoads
 
 numCols = 10
 numRows = 10
@@ -29,8 +30,11 @@ font = nil
 paused = true
 roundTicks = 0
 stepIndex = 0
-buildingTab = "road"
+buildingTab = "infra"
 hasHover = false
+
+pressed = false
+hovered = nil
 
 map = {}
 
@@ -56,29 +60,33 @@ buttonExtras = {
 }
 
 buildings = {
-  culture: {
-    "cinema"
-    "library"
-  }
   infra: {
     "power-plant"
-  }
-  road: {
-    "road-right-top"
-    "road-left-top"
-    "road-right-bottom"
-    "road-left-bottom"
-    "road-t-right"
-    "road-t-left"
-    "road-t-down"
-    "road-t-up"
-    "road-t"
-    "road-i"
-    "road--"
+    "cinema"
+    "library"
   }
   misc: {
     "arrow"
   }
+}
+
+roads = {
+  "road"
+  "road-down"
+  "road-left"
+  "road-left-down"
+  "road-left-right"
+  "road-left-right-down"
+  "road-left-right-up"
+  "road-left-right-up-down"
+  "road-left-up"
+  "road-left-up-down"
+  "road-right"
+  "road-right-down"
+  "road-right-up"
+  "road-right-up-down"
+  "road-up"
+  "road-up-down"
 }
 
 dir = {
@@ -107,19 +115,38 @@ dir_to_angle = (d) ->
     when dir.u then 0
     else 0
 
-road_mappings = {
-  "road-i": {dir.u, dir.d}
-  "road--": {dir.l, dir.r}
-  "road-t": {dir.u, dir.d, dir.l, dir.r}
-  "road-left-top": {dir.l, dir.u}
-  "road-left-bottom": {dir.l, dir.d}
-  "road-right-top": {dir.r, dir.u}
-  "road-right-bottom": {dir.r, dir.d}
-  "road-t-right": {dir.r, dir.d, dir.u}
-  "road-t-left": {dir.l, dir.d, dir.u}
-  "road-t-up": {dir.u, dir.l, dir.r}
-  "road-t-down": {dir.d, dir.l, dir.r}
-}
+vec_to_dir = (x, y) ->
+  switch true
+    when x == -1 and y == 0 then dir.l
+    when x == 1 and y == 0 then dir.r
+    when x == 0 and y == -1 then dir.u
+    when x == 0 and y == 1 then dir.d
+    else nil
+
+dir_opposite = (d) ->
+  switch d
+    when dir.l then dir.r
+    when dir.r then dir.l
+    when dir.u then dir.d
+    when dir.d then dir.u
+    else 0
+
+dirs_to_road = (dirs) ->
+  name = "road"
+  if dirs[dir.l]
+    name = "#{name}-left"
+  if dirs[dir.r]
+    name = "#{name}-right"
+  if dirs[dir.u]
+    name = "#{name}-up"
+  if dirs[dir.d]
+    name = "#{name}-down"
+  return name
+
+object_world_pos = (i, j) ->
+  x = initialMapX + i * slotSide
+  y = initialMapY + j * slotSide
+  return x, y
 
 images = {}
 
@@ -131,18 +158,44 @@ step = ->
   stepIndex += 1
 
 updateUI = ->
-  hasHover = false
+  lastHovered = hovered
+  hovered = nil
   for obj in *uiObjects
-    if obj.onclick
-      if obj.hover = uiObjectTouchesMouse(obj)
-        hasHover = true
-        break
-
-  if hasHover
+    if obj.hover = uiObjectTouchesMouse(obj)
+      hovered = obj
+  if hovered
     currentCursor = "hand"
   else
     currentCursor = "pointer"
-  text = "started #{startedAt.hour}:#{startedAt.min}:#{startedAt.sec} | step #{stepIndex}"
+  
+  if pressed and lastHovered and hovered and lastHovered != hovered
+    diffI = hovered.i - lastHovered.i
+    diffJ = hovered.j - lastHovered.j
+    if d = vec_to_dir diffI, diffJ
+      {x, y} = dir_to_vec(d)
+      text = "dragged in dir #{x}, #{y}"
+
+      lastIdx = lastHovered.i + lastHovered.j * numCols
+      idx = hovered.i + hovered.j * numCols
+
+      if keyboard.isDown("lshift") or keyboard.isDown("rshift")
+        if map[lastIdx] and map[lastIdx].dirs
+          map[lastIdx].dirs[d] = nil
+        if map[idx] and map[idx].dirs
+          map[idx].dirs[dir_opposite(d)] = nil
+      else
+        map[lastIdx] or= {}
+        map[lastIdx].road = true
+        map[lastIdx].dirs or= {}
+        map[lastIdx].dirs[d] = true
+        map[idx] or= {}
+        map[idx].road = true
+        map[idx].dirs or= {}
+        map[idx].dirs[dir_opposite(d)] = true
+      
+      buildRoads!
+
+  -- text = "started #{startedAt.hour}:#{startedAt.min}:#{startedAt.sec} | step #{stepIndex}"
 
 updateSim = (dt) ->
   roundTicks += dt
@@ -156,11 +209,25 @@ love.update = (dt) ->
   updateUI!
 
 love.mousepressed = (x, y, button, istouch, presses) ->
+  pressed = true 
+
   for obj in *uiObjects
     if uiObjectTouchesMouse(obj) and obj.onclick
       obj.onclick!
+      return
+
+love.mousereleased = (x, y, button, istouch, presses) ->
+  pressed = false
 
 local standardButtons
+
+buildRoads = ->
+  for i=1,numCols
+    for j=1,numRows
+      if c = map[i+j*numCols]
+        if c.road and c.dirs
+          c.road = dirs_to_road c.dirs
+  buildUI!
 
 buildUI = ->
   uiObjects = {}
@@ -181,17 +248,22 @@ buildUI = ->
     unless obj.icon 
       error("could not find icon for building #{b}")
     table.insert uiObjects, obj
-    io.write "added building #{b}, now has #{#uiObjects} ui objects\n"
+    -- io.write "added building #{b}, now has #{#uiObjects} ui objects\n"
 
   for i=1,numCols
     for j=1,numRows
-      if b = map[i+j*numCols]
-        table.insert uiObjects, {
+      if c = map[i+j*numCols]
+        obj = {
           :i, :j
           loc: "map"
-          icon: images.buildings[b]
-          building: b
+          building: c.building
         }
+        if c.road
+          obj.icon = images.roads[c.road]
+        else
+          obj.icon = images.buildings[c.building]
+
+        table.insert uiObjects, obj
 
   for i=1,numCols
     for j=1,numRows
@@ -201,7 +273,9 @@ buildUI = ->
         icon: images.buttons.slot
         onclick: (->
           if currentBuilding
-            map[i+j*numCols] = currentBuilding
+            map[i+j*numCols] = {
+              building: currentBuilding
+            }
             buildUI!
         )
       }
@@ -244,12 +318,10 @@ buildUI = ->
             paletteX = initialPaletteX
             paletteY += paletteItemSide + paletteItemSpacing
         when "map"
-          obj.x = initialMapX + obj.i * slotSide
-          obj.y = initialMapY + obj.j * slotSide
-          obj.w = slotSide
-          obj.h = slotSide
+          obj.x, obj.y = object_world_pos obj.i, obj.j
+          obj.w, obj.h = slotSide, slotSide
         else
-          error("unknown location #{obj.loc}")
+          error "unknown location #{obj.loc}"
 
 love.load = ->
   for i=1*numCols,numCols*numRows
@@ -275,6 +347,10 @@ love.load = ->
   for cat, catBuildings in pairs buildings
     for k in *catBuildings
       images.buildings[k] = newImage "art/buildings/#{k}.png"
+
+  images.roads = {}
+  for k in *roads
+    images.roads[k] = newImage "art/roads/#{k}.png"
 
   standardButtons = {
     pause: {
@@ -312,8 +388,8 @@ drawUI = ->
       if obj.hover
         graphics.setColor 1, 1, 1
       else
-        graphics.setColor 0.8, 0.8, 0.8
-      x, y = obj.x, obj.y
+        graphics.setColor 1, 1, 1, 0.5
+      {:x, :y} = obj
 
       scale = 1
       angle = 0
@@ -328,21 +404,22 @@ drawUI = ->
           graphics.draw images.buttonExtras.bg, x, y, angle, scale, scale
 
       graphics.draw obj.icon, x, y, angle, scale, scale
-    
+
   do
     half = slotSide / 2
-    for obj in *uiObjects
-      if b = obj.building
-        x, y = obj.x, obj.y
-        if dirs = road_mappings[b]
-          for d in *dirs
-            angle = dir_to_angle d
-            graphics.reset!
-            graphics.setColor 0.6, 0.6, 1
-            ox = half
-            oy = half
-            scale = 1
-            graphics.draw images.buildings.arrow, x + half, y + half, angle, scale, scale, ox, oy
+    for i=1,numCols
+      for j=1,numRows
+        if c = map[i+j*numCols]
+          if dirs = c.dirs
+            x, y = object_world_pos i, j
+            for d in pairs dirs
+              angle = dir_to_angle d
+              graphics.reset!
+              graphics.setColor 0.7, 0.7, 1
+              ox = half
+              oy = half
+              scale = 0.8
+              graphics.draw images.buildings.arrow, x + half, y + half, angle, scale, scale, ox, oy
 
   do
     x, y = mouse.getPosition!
