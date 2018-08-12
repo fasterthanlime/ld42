@@ -72,6 +72,45 @@ buildings = {
     "road-right-top"
     "road-right-bottom"
   }
+  misc: {
+    "arrow"
+  }
+}
+
+dir = {
+  l: {-1, 0},
+  r: {1, 0},
+  u: {0, -1},
+  d: {0, 1},
+}
+
+PI = 3.14159265 -- that's all I can remember tonight
+
+dir_to_vec = (d) ->
+  switch d
+    when dir.l then {-1, 0}
+    when dir.r then {1, 0}
+    when dir.u then {0, -1}
+    when dir.d then {0, 1}
+    else {0, 0}
+
+-- assuming the sprite points up
+dir_to_angle = (d) ->
+  switch d
+    when dir.l then -PI/2
+    when dir.r then PI/2
+    when dir.d then PI
+    when dir.u then 0
+    else 0
+
+road_mappings = {
+  "road-i": {dir.u, dir.d},
+  "road--": {dir.l, dir.r},
+  "road-t": {dir.u, dir.d, dir.l, dir.r},
+  "road-left-top": {dir.l, dir.u},
+  "road-left-bottom": {dir.l, dir.d},
+  "road-right-top": {dir.r, dir.u},
+  "road-right-bottom": {dir.r, dir.d},
 }
 
 images = {}
@@ -136,17 +175,18 @@ buildUI = ->
     table.insert uiObjects, obj
     io.write "added building #{b}, now has #{#uiObjects} ui objects\n"
 
-  for i=0,numCols
-    for j=0,numRows
+  for i=1,numCols
+    for j=1,numRows
       if b = map[i+j*numCols]
         table.insert uiObjects, {
           :i, :j
           loc: "map"
           icon: images.buildings[b]
+          building: b
         }
 
-  for i=0,numCols
-    for j=0,numRows
+  for i=1,numCols
+    for j=1,numRows
       table.insert uiObjects, {
         :i, :j
         loc: "map"
@@ -204,7 +244,7 @@ buildUI = ->
           error("unknown location #{obj.loc}")
 
 love.load = ->
-  for i=0,numCols*numRows
+  for i=1*numCols,numCols*numRows
     map[i] = nil
 
   mouse.setVisible false
@@ -280,6 +320,21 @@ drawUI = ->
           graphics.draw images.buttonExtras.bg, x, y, angle, scale, scale
 
       graphics.draw obj.icon, x, y, angle, scale, scale
+    
+  do
+    half = slotSide / 2
+    for obj in *uiObjects
+      if b = obj.building
+        x, y = obj.x, obj.y
+        if dirs = road_mappings[b]
+          for d in *dirs
+            angle = dir_to_angle d
+            graphics.reset!
+            graphics.setColor 0.6, 0.6, 1
+            ox = half
+            oy = half
+            scale = 1
+            graphics.draw images.buildings.arrow, x + half, y + half, angle, scale, scale, ox, oy
 
   do
     x, y = mouse.getPosition!
