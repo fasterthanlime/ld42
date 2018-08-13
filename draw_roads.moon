@@ -24,7 +24,7 @@ draw_roads = (state, old_hover, new_hover) ->
 
   return if new_c.building and new_c.building.terrain
   return if old_c.building and old_c.building.terrain
-  log "old_idx = #{old_idx}, new_idx = #{new_idx}"
+  -- log "old_idx = #{old_idx}, new_idx = #{new_idx}"
 
   did_cost = false
 

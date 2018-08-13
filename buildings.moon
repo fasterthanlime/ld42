@@ -50,25 +50,25 @@ buildings = {
       name: "oil"
       cost: 800
       inputs: {}
-      output: {name: "oil", amount: 4}
+      output: {name: "oil", amount: 2}
     }
     {
       name: "copper"
       cost: 800
       inputs: {}
-      output: {name: "copper", amount: 4}
+      output: {name: "copper", amount: 2}
     }
     {
       name: "gold"
       cost: 800
       inputs: {}
-      output: {name: "gold", amount: 4}
+      output: {name: "gold", amount: 2}
     }
     {
       name: "diamond"
       cost: 800
       inputs: {}
-      output: {name: "diamonds", amount: 4}
+      output: {name: "diamonds", amount: 2}
     }
   }
 

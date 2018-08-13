@@ -3,6 +3,7 @@ import graphics, mouse from require "love"
 imgs = require "imgs"
 utils = require "utils"
 constants = require "constants"
+draw_indic = require "draw_indic"
 
 draw_ui = (state) ->
   graphics.reset!
@@ -45,5 +46,16 @@ draw_ui = (state) ->
         else
           graphics.setColor 1, 0.6, 0.6
         graphics.print "$#{obj.cost}", x, y+55
+
+      if obj.loc == "map"
+        {:i, :j} = obj
+        idx = utils.ij_to_index i, j
+        c = state.map.cells[idx]
+        if b = c.building
+          if b.inputs and b.output
+            cur = c.bstate.materials[b.output.name]
+            max = constants.max_output
+            perc = cur/max
+            draw_indic 40, x, y, perc
 
 draw_ui

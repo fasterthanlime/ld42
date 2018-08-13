@@ -40,7 +40,6 @@ draw_roads = function(state, old_hover, new_hover)
   if old_c.building and old_c.building.terrain then
     return 
   end
-  log("old_idx = " .. tostring(old_idx) .. ", new_idx = " .. tostring(new_idx))
   local did_cost = false
   local od = utils.dir_opposite(d)
   if utils.is_shift_down() then

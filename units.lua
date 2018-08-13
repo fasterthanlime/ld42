@@ -1,15 +1,18 @@
 local units = {
   {
     name = "jeep",
-    cost = 1000
+    capacity = 4,
+    cost = 280
   },
   {
     name = "van",
-    cost = 2500
+    capacity = 40,
+    cost = 3000
   },
   {
     name = "truck",
-    cost = 8000
+    capacity = 150,
+    cost = 5000
   }
 }
 return units

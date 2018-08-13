@@ -85,7 +85,7 @@ local buildings = {
       inputs = { },
       output = {
         name = "oil",
-        amount = 4
+        amount = 2
       }
     },
     {
@@ -94,7 +94,7 @@ local buildings = {
       inputs = { },
       output = {
         name = "copper",
-        amount = 4
+        amount = 2
       }
     },
     {
@@ -103,7 +103,7 @@ local buildings = {
       inputs = { },
       output = {
         name = "gold",
-        amount = 4
+        amount = 2
       }
     },
     {
@@ -112,7 +112,7 @@ local buildings = {
       inputs = { },
       output = {
         name = "diamonds",
-        amount = 4
+        amount = 2
       }
     }
   },

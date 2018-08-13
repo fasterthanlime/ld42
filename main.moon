@@ -52,9 +52,10 @@ main.do_step = ->
             c.bstate.materials[input.name] -= input.amount
           c.bstate.materials[outname] += b.output.amount
 
-          log "producing #{b.output.amount} #{outname} at #{i}, #{j}"
-          pprint c.bstate.materials
-          log "-------------"
+          if #b.inputs > 0
+            log "producing #{b.output.amount} #{outname} at #{i}, #{j}"
+            pprint c.bstate.materials
+            log "-------------"
 
   -- step vehicles
   all_nodes = {}
@@ -107,30 +108,37 @@ main.do_step = ->
     if u.path
       u.path.index += 1
       if u.path.index > #u.path.nodes
-        log "completed path!"
+        -- log "completed path!"
         last_node = u.path.nodes[u.path.index-1]
 
-        log "last node was: "
-        pprint last_node
+        -- log "last node was: "
+        -- pprint last_node
 
         c = last_node.c
         if b = c.building
           switch b.name
             when "city"
-              log "we're in the city! do we got anything to sell?"
+              -- log "we're in the city! do we got anything to sell?"
               for k, v in pairs u.materials
                 if v > 0
-                  log "let's sell #{k}"
+                  -- log "let's sell #{k}"
                   profit = materials[k].price * v
-                  log "...for $#{profit}"
+                  -- log "...for $#{profit}"
                   u.materials[k] = 0
                   state.money += profit
             else if b.inputs and b.output
               outname = b.output.name
-              log "we're at a '#{b.name}', let's grab its outputs"
+              -- log "we're at a '#{b.name}', let's grab its outputs"
               u.materials[outname] or= 0
-              u.materials[outname] += c.bstate.materials[outname]
-              c.bstate.materials[outname] = 0
+              merch_avail = c.bstate.materials[outname]
+              space_taken = 0
+              for k, v in pairs u.materials
+                space_taken += v
+              space_avail = u.unit.capacity - space_taken
+              merch_taken = math.min(space_avail, merch_avail)
+
+              u.materials[outname] += merch_taken
+              c.bstate.materials[outname] -= merch_taken
 
         u.path = nil
 
@@ -142,12 +150,12 @@ main.do_step = ->
           break
 
       unless start
-        log "cannot move vehicle #{u_index} (not on the road)"
+        -- log "cannot move vehicle #{u_index} (not on the road)"
         continue
 
       neighbors = neighbor_nodes start
       if #neighbors == 0
-        log "cannot move vehicle #{u_index} (no neighbors)"
+        -- log "cannot move vehicle #{u_index} (no neighbors)"
         continue
       -- log "found #{#neighbors} neighbors"
 
@@ -158,8 +166,17 @@ main.do_step = ->
       neighbors = building_neighbors
       -- log "found #{#neighbors} building neighbors"
 
+      if utils.unit_is_full u
+        -- log "unit is full, trying to eliminate bad neighbors"
+        good_neighbors = {}
+        for n in *neighbors
+          if utils.unit_has_input_for_cell u, n.c
+            table.insert good_neighbors, n
+        -- log "narrowed it down #{#neighbors} -> #{#good_neighbors}"
+        neighbors = good_neighbors
+
       if #neighbors == 0
-        -- log "cannot move vehicle #{u_index} (no building neighbors)"
+        -- log "cannot move vehicle #{u_index} (no good neighbors)"
         continue
 
       goal = neighbors[love.math.random(#neighbors)]
@@ -167,7 +184,7 @@ main.do_step = ->
       -- pprint goal
 
       if nodes = astar.path start, goal, all_nodes, ignore, valid_node_func
-        log "found path with #{#nodes} nodes! setting..."
+        -- log "found path with #{#nodes} nodes! setting..."
         u.path = {
           :nodes
           index: 1
@@ -186,7 +203,7 @@ main.do_step = ->
       d = utils.vec_to_dir diff_i, diff_j
       u.d = d
       u.angle = utils.dir_to_angle d
-      u.tween = tween.new constants.step_duration*0.9, u, {
+      u.tween = tween.new constants.step_duration, u, {
         i: node.i
         j: node.j
       }

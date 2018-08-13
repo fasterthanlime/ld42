@@ -58,9 +58,11 @@ main.do_step = function()
                 c.bstate.materials[input.name] = c.bstate.materials[input.name] - input.amount
               end
               c.bstate.materials[outname] = c.bstate.materials[outname] + b.output.amount
-              log("producing " .. tostring(b.output.amount) .. " " .. tostring(outname) .. " at " .. tostring(i) .. ", " .. tostring(j))
-              pprint(c.bstate.materials)
-              log("-------------")
+              if #b.inputs > 0 then
+                log("producing " .. tostring(b.output.amount) .. " " .. tostring(outname) .. " at " .. tostring(i) .. ", " .. tostring(j))
+                pprint(c.bstate.materials)
+                log("-------------")
+              end
             end
           end
         end
@@ -140,22 +142,16 @@ main.do_step = function()
       if u.path then
         u.path.index = u.path.index + 1
         if u.path.index > #u.path.nodes then
-          log("completed path!")
           local last_node = u.path.nodes[u.path.index - 1]
-          log("last node was: ")
-          pprint(last_node)
           local c = last_node.c
           do
             local b = c.building
             if b then
               local _exp_0 = b.name
               if "city" == _exp_0 then
-                log("we're in the city! do we got anything to sell?")
                 for k, v in pairs(u.materials) do
                   if v > 0 then
-                    log("let's sell " .. tostring(k))
                     local profit = materials[k].price * v
-                    log("...for $" .. tostring(profit))
                     u.materials[k] = 0
                     state.money = state.money + profit
                   end
@@ -163,10 +159,16 @@ main.do_step = function()
               else
                 if b.inputs and b.output then
                   local outname = b.output.name
-                  log("we're at a '" .. tostring(b.name) .. "', let's grab its outputs")
                   u.materials[outname] = u.materials[outname] or 0
-                  u.materials[outname] = u.materials[outname] + c.bstate.materials[outname]
-                  c.bstate.materials[outname] = 0
+                  local merch_avail = c.bstate.materials[outname]
+                  local space_taken = 0
+                  for k, v in pairs(u.materials) do
+                    space_taken = space_taken + v
+                  end
+                  local space_avail = u.unit.capacity - space_taken
+                  local merch_taken = math.min(space_avail, merch_avail)
+                  u.materials[outname] = u.materials[outname] + merch_taken
+                  c.bstate.materials[outname] = c.bstate.materials[outname] - merch_taken
                 end
               end
             end
@@ -184,13 +186,11 @@ main.do_step = function()
           end
         end
         if not (start) then
-          log("cannot move vehicle " .. tostring(u_index) .. " (not on the road)")
           _continue_0 = true
           break
         end
         local neighbors = neighbor_nodes(start)
         if #neighbors == 0 then
-          log("cannot move vehicle " .. tostring(u_index) .. " (no neighbors)")
           _continue_0 = true
           break
         end
@@ -202,6 +202,16 @@ main.do_step = function()
           end
         end
         neighbors = building_neighbors
+        if utils.unit_is_full(u) then
+          local good_neighbors = { }
+          for _index_0 = 1, #neighbors do
+            local n = neighbors[_index_0]
+            if utils.unit_has_input_for_cell(u, n.c) then
+              table.insert(good_neighbors, n)
+            end
+          end
+          neighbors = good_neighbors
+        end
         if #neighbors == 0 then
           _continue_0 = true
           break
@@ -210,7 +220,6 @@ main.do_step = function()
         do
           local nodes = astar.path(start, goal, all_nodes, ignore, valid_node_func)
           if nodes then
-            log("found path with " .. tostring(#nodes) .. " nodes! setting...")
             u.path = {
               nodes = nodes,
               index = 1
@@ -228,7 +237,7 @@ main.do_step = function()
         local d = utils.vec_to_dir(diff_i, diff_j)
         u.d = d
         u.angle = utils.dir_to_angle(d)
-        u.tween = tween.new(constants.step_duration * 0.9, u, {
+        u.tween = tween.new(constants.step_duration, u, {
           i = node.i,
           j = node.j
         })

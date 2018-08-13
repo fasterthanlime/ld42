@@ -6,6 +6,14 @@ import mouse, keyboard from require "love"
 utils = {}
 
 --------------------------------
+-- the good stuff
+--------------------------------
+
+feq = (a, b) ->
+  math.abs(a-b)<0.1
+utils.feq = feq
+
+--------------------------------
 -- collisions
 --------------------------------
 
@@ -40,6 +48,30 @@ utils.is_shift_down = ->
 --------------------------------
 -- map stuff
 --------------------------------
+
+utils.unit_taken_space = (u) ->
+  taken_space = 0
+  for k, v in pairs u.materials
+    taken_space += v
+  return taken_space
+
+utils.unit_avail_space = (u) ->
+  u.unit.capacity - utils.unit_taken_space(u)
+
+utils.unit_is_full = (u) ->
+  feq(utils.unit_avail_space(u), 0)
+
+utils.unit_has_input_for_cell = (u, c) ->
+  b = c.building
+  if b.name == "city"
+    return true
+
+  if b.inputs and b.output
+    for input in *b.inputs
+      if u.materials[input.name] > 0
+        return true
+
+  false
 
 utils.init_building = (c) ->
   c.bstate = {}
@@ -106,10 +138,6 @@ utils.dir_to_angle = (d) ->
     when Dir.d then PI
     when Dir.u then 0
     else 0
-
-feq = (a, b) ->
-  math.abs(a-b)<0.1
-utils.feq = feq
 
 utils.vec_to_dir = (x, y) ->
   switch true

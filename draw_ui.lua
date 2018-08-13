@@ -6,6 +6,7 @@ end
 local imgs = require("imgs")
 local utils = require("utils")
 local constants = require("constants")
+local draw_indic = require("draw_indic")
 local draw_ui
 draw_ui = function(state)
   graphics.reset()
@@ -57,6 +58,23 @@ draw_ui = function(state)
           graphics.setColor(1, 0.6, 0.6)
         end
         graphics.print("$" .. tostring(obj.cost), x, y + 55)
+      end
+      if obj.loc == "map" then
+        local i, j
+        i, j = obj.i, obj.j
+        local idx = utils.ij_to_index(i, j)
+        local c = state.map.cells[idx]
+        do
+          local b = c.building
+          if b then
+            if b.inputs and b.output then
+              local cur = c.bstate.materials[b.output.name]
+              local max = constants.max_output
+              local perc = cur / max
+              draw_indic(40, x, y, perc)
+            end
+          end
+        end
       end
     end
   end

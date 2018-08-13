@@ -7,6 +7,11 @@ do
   mouse, keyboard = _obj_0.mouse, _obj_0.keyboard
 end
 local utils = { }
+local feq
+feq = function(a, b)
+  return math.abs(a - b) < 0.1
+end
+utils.feq = feq
 utils.check_collision = function(x1, y1, w1, h1, x2, y2, w2, h2)
   return x1 < x2 + w2 and x2 < x1 + w1 and y1 < y2 + h2 and y2 < y1 + h1
 end
@@ -19,6 +24,35 @@ utils.log = function(s)
 end
 utils.is_shift_down = function()
   return keyboard.isDown("lshift") or keyboard.isDown("rshift")
+end
+utils.unit_taken_space = function(u)
+  local taken_space = 0
+  for k, v in pairs(u.materials) do
+    taken_space = taken_space + v
+  end
+  return taken_space
+end
+utils.unit_avail_space = function(u)
+  return u.unit.capacity - utils.unit_taken_space(u)
+end
+utils.unit_is_full = function(u)
+  return feq(utils.unit_avail_space(u), 0)
+end
+utils.unit_has_input_for_cell = function(u, c)
+  local b = c.building
+  if b.name == "city" then
+    return true
+  end
+  if b.inputs and b.output then
+    local _list_0 = b.inputs
+    for _index_0 = 1, #_list_0 do
+      local input = _list_0[_index_0]
+      if u.materials[input.name] > 0 then
+        return true
+      end
+    end
+  end
+  return false
 end
 utils.init_building = function(c)
   c.bstate = { }
@@ -138,11 +172,6 @@ utils.dir_to_angle = function(d)
     return 0
   end
 end
-local feq
-feq = function(a, b)
-  return math.abs(a - b) < 0.1
-end
-utils.feq = feq
 utils.vec_to_dir = function(x, y)
   local _exp_0 = true
   if (feq(x, -1) and feq(y, 0)) == _exp_0 then
