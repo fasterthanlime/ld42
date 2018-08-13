@@ -4,22 +4,44 @@ buildings = {
     {
       name: "wires"
       cost: 800
+      input: {
+        {name: "copper", amount: 1}
+      }
+      output: {name: "wires", amount: 10}
     }
     {
       name: "plastic"
       cost: 800
+      output: {name: "plastic"}
+      input: {
+        {name: "oil", amount: 1}
+      }
+      output: {name: "plastic", amount: 4}
     }
     {
       name: "jewelry"
       cost: 800
+      input: {
+        {name: "diamonds", amount: 1}
+        {name: "gold", amount: 2}
+      }
+      output: {name: "jewelry", amount: 4}
     }
     {
       name: "toys"
       cost: 800
+      input: {
+        {name: "plastic", amount: 2}
+      }
+      output: {name: "toys", amount: 10}
     }
     {
       name: "microchips"
       cost: 800
+      input: {
+        {name: "diamonds", amount: 5}
+      }
+      output: {name: "microchips", amount: 1}
     }
   }
 
@@ -27,18 +49,26 @@ buildings = {
     {
       name: "oil"
       cost: 800
+      input: {}
+      output: {name: "oil", amount: 1}
     }
     {
       name: "copper"
       cost: 800
+      input: {}
+      output: {name: "copper", amount: 1}
     }
     {
       name: "gold"
       cost: 800
+      input: {}
+      output: {name: "gold", amount: 1}
     }
     {
       name: "diamond"
       cost: 800
+      input: {}
+      output: {name: "diamond", amount: 1}
     }
   }
 
