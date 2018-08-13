@@ -1,9 +1,10 @@
 -- love2d
-import graphics, mouse, keyboard, math from love
+import graphics, mouse, keyboard from love
 
 -- external modules
 tween = require "tween"
 pprint = require "pprint"
+astar = require "astar"
 
 -- our own modules
 constants = require "constants"
@@ -30,15 +31,100 @@ main.do_step = ->
   state.sim.step += 1
 
   log "stepping!"
-  for u in *state.map.units
-    d = utils.random_dir!
-    {diff_i, diff_j} = utils.dir_to_vec d
-    u.d = d
-    u.angle = utils.dir_to_angle d
-    u.tween = tween.new constants.step_duration, u, {
-      i: u.i + diff_i,
-      j: u.j + diff_j,
-    }
+  all_nodes = {}
+  for i=1,constants.num_cols
+    for j=1,constants.num_rows
+      idx = utils.ij_to_index i, j
+      c = state.map.cells[idx]
+      if utils.has_dirs c
+        table.insert all_nodes, {
+          x: i,
+          y: j
+          :i, :j
+          c: c
+        }
+  log "got #{#all_nodes} nodes total"
+
+  valid_node_func = (node, neighbor) ->
+    i, j = utils.obj_ij_diff node, neighbor
+    utils.vec_to_dir(i, j) != nil
+
+  neighbor_nodes = (node) ->
+    neighbors = {}
+
+    while true
+      old_neighbors = neighbors
+      neighbors = {}
+      add_neighbor = (n) ->
+        for nn in *neighbors
+          if nn == n
+            return
+        table.insert neighbors, n
+      
+      visit_node = (on) ->
+        for n in *all_nodes
+          if valid_node_func on, n
+            add_neighbor n
+
+      visit_node node
+      for on in *old_neighbors
+        visit_node on
+      
+      if #neighbors == #old_neighbors
+        return neighbors
+
+  for u_index, u in ipairs state.map.units
+    if u.path
+      u.path.index += 1
+      if u.path.index > #u.path.nodes
+        log "completed path!"
+        u.path = nil
+
+    unless u.path
+      start = nil
+      for n in *all_nodes
+        if n.i == u.i and n.j == u.j
+          start = n
+          break
+
+      unless start
+        log "cannot move vehicle #{u_index} (not on the road)"
+        continue
+
+      neighbors = neighbor_nodes start
+      if #neighbors == 0
+        log "cannot move vehicle #{u_index} (no neighbors)"
+        continue
+      log "found #{#neighbors} neighbors"
+
+      goal = neighbors[love.math.random(#neighbors)]
+      log "picked goal: "
+      pprint goal
+
+      if nodes = astar.path start, goal, all_nodes, ignore, valid_node_func
+        log "found path with #{#nodes} nodes! setting..."
+        u.path = {
+          :nodes
+          index: 1
+        }
+      else
+        log "cannot move vehicle #{u_index} (could not find path from)"
+        pprint start
+        log "to: "
+        pprint goal
+        continue
+
+    if u.path
+      node = u.path.nodes[u.path.index]
+      diff_i = node.i - u.i
+      diff_j = node.j - u.j
+      d = utils.vec_to_dir diff_i, diff_j
+      u.d = d
+      u.angle = utils.dir_to_angle d
+      u.tween = tween.new constants.step_duration, u, {
+        i: u.i + diff_i,
+        j: u.j + diff_j,
+      }
 
 main.update_ui = ->
   -- find hovered objects

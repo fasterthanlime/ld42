@@ -8,6 +8,7 @@ draw_roads = (state, old_hover, new_hover) ->
   return unless state.ui.pressed
   return unless state.tool.name == "road"
   return unless old_hover and new_hover
+  return unless old_hover.meta and new_hover.meta
   return if old_hover == new_hover
 
   diff_i, diff_j = utils.obj_ij_diff old_hover, new_hover
@@ -31,10 +32,8 @@ draw_roads = (state, old_hover, new_hover) ->
 
   if utils.is_shift_down!
     -- delete roads
-    if utils.has_dir(old_c, d) or utils.has_dir(new_c, od)
-      if utils.spend state, constants.destruction_cost, "destroy roads"
-        utils.remove_dir old_c, d
-        utils.remove_dir new_c, od
+    utils.remove_dir old_c, d
+    utils.remove_dir new_c, od
   else
     -- add roads
     if not (utils.has_dir(old_c, d) and utils.has_dir(new_c, od))

@@ -59,6 +59,7 @@ build_ui = (state) ->
     obj = {
       loc: "palette"
       icon: "road-left-right"
+      cost: constants.road_cost
       onclick: ((state)->
         state.tool = {name: "road"}
         return {build_ui: true}
@@ -70,6 +71,7 @@ build_ui = (state) ->
     obj = {
       loc: "palette"
       icon: b.name
+      cost: b.cost
       onclick: ((state) ->
         state.tool = {name: "building", building: b}
         return {build_ui: true}
@@ -83,6 +85,7 @@ build_ui = (state) ->
     obj = {
       loc: "palette"
       icon: u.name
+      cost: u.cost
       onclick: ((state) ->
         state.tool = {name: "unit", unit: u}
         return {build_ui: true}
@@ -120,9 +123,8 @@ build_ui = (state) ->
               c = state.map.cells[idx]
               return if c.protected
               if utils.is_shift_down! and c.building
-                if utils.spend state, constants.destruction_cost, "destroy building"
-                  c.building = nil
-                  return {build_ui: true}
+                c.building = nil
+                return {build_ui: true}
               else
                 if utils.spend state, state.tool.building.cost, "build #{state.tool.building.name}"
                   c.building = state.tool.building
@@ -181,7 +183,7 @@ build_ui = (state) ->
           if palette_n >= constants.palette.items_per_row
             palette_n = 0
             palette_x = constants.palette.initial_x
-            palette_y += constants.palette.item_side + constants.palette.item_spacing
+            palette_y += constants.palette.item_side + constants.palette.item_spacing_y
         when "map"
           obj.x, obj.y = utils.object_world_pos obj.i, obj.j
           obj.w, obj.h = constants.map.slot_side, constants.map.slot_side

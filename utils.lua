@@ -1,10 +1,10 @@
 local constants = require("constants")
 local PI
 PI = constants.PI
-local mouse, keyboard, random
+local mouse, keyboard
 do
   local _obj_0 = require("love")
-  mouse, keyboard, random = _obj_0.mouse, _obj_0.keyboard, _obj_0.random
+  mouse, keyboard = _obj_0.mouse, _obj_0.keyboard
 end
 local utils = { }
 utils.check_collision = function(x1, y1, w1, h1, x2, y2, w2, h2)
@@ -25,6 +25,15 @@ utils.ij_to_index = function(i, j)
 end
 utils.obj_ij_diff = function(a, b)
   return b.i - a.i, b.j - a.j
+end
+utils.has_dirs = function(c)
+  if not (c.dirs) then
+    return false
+  end
+  for k, v in pairs(c.dirs) do
+    return true
+  end
+  return false
 end
 utils.each_map_index = function(f)
   for i = 1, constants.num_cols do
@@ -146,7 +155,7 @@ utils.dir_opposite = function(d)
   end
 end
 utils.random_dir = function()
-  local x = math.random()
+  local x = love.math.random()
   local _exp_0 = true
   if (x < 0.25) == _exp_0 then
     return Dir.l
@@ -192,7 +201,7 @@ end
 utils.spend = function(state, amount, action)
   if state.money > amount then
     state.money = state.money - amount
-    state.ui.status_text = "just spent $" .. tostring(amount) .. " to " .. tostring(action) .. ", cash left: $" .. tostring(state.money)
+    state.ui.status_text = "just spent $" .. tostring(amount) .. " to " .. tostring(action)
     return true
   else
     state.ui.status_text = "can't afford to spend $" .. tostring(amount) .. " to " .. tostring(action)

@@ -1,7 +1,7 @@
 
 constants = require "constants"
 {:PI} = constants
-import mouse, keyboard, random from require "love"
+import mouse, keyboard from require "love"
 
 utils = {}
 
@@ -46,6 +46,12 @@ utils.ij_to_index = (i, j) ->
 
 utils.obj_ij_diff = (a, b) ->
   return b.i-a.i, b.j-a.j
+
+utils.has_dirs = (c) ->
+  return false unless c.dirs
+  for k, v in pairs c.dirs
+    return true
+  false
 
 utils.each_map_index = (f) ->
   for i=1,constants.num_cols
@@ -110,7 +116,7 @@ utils.dir_opposite = (d) ->
     else 0
 
 utils.random_dir = ->
-  x = math.random!
+  x = love.math.random!
   switch true
     when x < 0.25
       Dir.l
@@ -159,7 +165,7 @@ utils.remove_dir = (c, d) ->
 utils.spend = (state, amount, action) ->
   if state.money > amount
     state.money -= amount
-    state.ui.status_text = "just spent $#{amount} to #{action}, cash left: $#{state.money}"
+    state.ui.status_text = "just spent $#{amount} to #{action}"
     true
   else
     state.ui.status_text = "can't afford to spend $#{amount} to #{action}"

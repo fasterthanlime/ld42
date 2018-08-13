@@ -7,8 +7,12 @@ constants = require "constants"
 draw_ui = (state) ->
   graphics.reset!
   graphics.setColor 1, 1, 1
-  graphics.print state.ui.main_text, 20, constants.screen_h-40
-  graphics.print state.ui.status_text, 20, constants.screen_h-20
+  graphics.setFont constants.big_font
+  graphics.print state.ui.main_text, 20, constants.screen_h-60
+
+  graphics.reset!
+  graphics.setColor 1, 1, 1
+  graphics.print state.ui.status_text, 20, constants.screen_h-25
 
   do 
     for obj in *state.ui.objects
@@ -34,5 +38,12 @@ draw_ui = (state) ->
         graphics.draw imgs.get(icon), x, y, angle, scale, scale
       else if icon = obj.road_icon
         graphics.draw imgs.get(icon), x, y, angle, scale, scale
+
+      if obj.loc == "palette"
+        if state.money >= obj.cost
+          graphics.setColor 0.6, 1, 0.6
+        else
+          graphics.setColor 1, 0.6, 0.6
+        graphics.print "$#{obj.cost}", x, y+55
 
 draw_ui

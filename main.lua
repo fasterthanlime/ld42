@@ -1,10 +1,11 @@
-local graphics, mouse, keyboard, math
+local graphics, mouse, keyboard
 do
   local _obj_0 = love
-  graphics, mouse, keyboard, math = _obj_0.graphics, _obj_0.mouse, _obj_0.keyboard, _obj_0.math
+  graphics, mouse, keyboard = _obj_0.graphics, _obj_0.mouse, _obj_0.keyboard
 end
 local tween = require("tween")
 local pprint = require("pprint")
+local astar = require("astar")
 local constants = require("constants")
 local utils = require("utils")
 local log, Dir
@@ -24,21 +25,132 @@ local main = { }
 main.do_step = function()
   state.sim.step = state.sim.step + 1
   log("stepping!")
-  local _list_0 = state.map.units
-  for _index_0 = 1, #_list_0 do
-    local u = _list_0[_index_0]
-    local d = utils.random_dir()
-    local diff_i, diff_j
-    do
-      local _obj_0 = utils.dir_to_vec(d)
-      diff_i, diff_j = _obj_0[1], _obj_0[2]
+  local all_nodes = { }
+  for i = 1, constants.num_cols do
+    for j = 1, constants.num_rows do
+      local idx = utils.ij_to_index(i, j)
+      local c = state.map.cells[idx]
+      if utils.has_dirs(c) then
+        table.insert(all_nodes, {
+          x = i,
+          y = j,
+          i = i,
+          j = j,
+          c = c
+        })
+      end
     end
-    u.d = d
-    u.angle = utils.dir_to_angle(d)
-    u.tween = tween.new(constants.step_duration, u, {
-      i = u.i + diff_i,
-      j = u.j + diff_j
-    })
+  end
+  log("got " .. tostring(#all_nodes) .. " nodes total")
+  local valid_node_func
+  valid_node_func = function(node, neighbor)
+    local i, j = utils.obj_ij_diff(node, neighbor)
+    return utils.vec_to_dir(i, j) ~= nil
+  end
+  local neighbor_nodes
+  neighbor_nodes = function(node)
+    local neighbors = { }
+    while true do
+      local old_neighbors = neighbors
+      neighbors = { }
+      local add_neighbor
+      add_neighbor = function(n)
+        for _index_0 = 1, #neighbors do
+          local nn = neighbors[_index_0]
+          if nn == n then
+            return 
+          end
+        end
+        return table.insert(neighbors, n)
+      end
+      local visit_node
+      visit_node = function(on)
+        for _index_0 = 1, #all_nodes do
+          local n = all_nodes[_index_0]
+          if valid_node_func(on, n) then
+            add_neighbor(n)
+          end
+        end
+      end
+      visit_node(node)
+      for _index_0 = 1, #old_neighbors do
+        local on = old_neighbors[_index_0]
+        visit_node(on)
+      end
+      if #neighbors == #old_neighbors then
+        return neighbors
+      end
+    end
+  end
+  for u_index, u in ipairs(state.map.units) do
+    local _continue_0 = false
+    repeat
+      if u.path then
+        u.path.index = u.path.index + 1
+        if u.path.index > #u.path.nodes then
+          log("completed path!")
+          u.path = nil
+        end
+      end
+      if not (u.path) then
+        local start = nil
+        for _index_0 = 1, #all_nodes do
+          local n = all_nodes[_index_0]
+          if n.i == u.i and n.j == u.j then
+            start = n
+            break
+          end
+        end
+        if not (start) then
+          log("cannot move vehicle " .. tostring(u_index) .. " (not on the road)")
+          _continue_0 = true
+          break
+        end
+        local neighbors = neighbor_nodes(start)
+        if #neighbors == 0 then
+          log("cannot move vehicle " .. tostring(u_index) .. " (no neighbors)")
+          _continue_0 = true
+          break
+        end
+        log("found " .. tostring(#neighbors) .. " neighbors")
+        local goal = neighbors[love.math.random(#neighbors)]
+        log("picked goal: ")
+        pprint(goal)
+        do
+          local nodes = astar.path(start, goal, all_nodes, ignore, valid_node_func)
+          if nodes then
+            log("found path with " .. tostring(#nodes) .. " nodes! setting...")
+            u.path = {
+              nodes = nodes,
+              index = 1
+            }
+          else
+            log("cannot move vehicle " .. tostring(u_index) .. " (could not find path from)")
+            pprint(start)
+            log("to: ")
+            pprint(goal)
+            _continue_0 = true
+            break
+          end
+        end
+      end
+      if u.path then
+        local node = u.path.nodes[u.path.index]
+        local diff_i = node.i - u.i
+        local diff_j = node.j - u.j
+        local d = utils.vec_to_dir(diff_i, diff_j)
+        u.d = d
+        u.angle = utils.dir_to_angle(d)
+        u.tween = tween.new(constants.step_duration, u, {
+          i = u.i + diff_i,
+          j = u.j + diff_j
+        })
+      end
+      _continue_0 = true
+    until true
+    if not _continue_0 then
+      break
+    end
   end
 end
 main.update_ui = function()

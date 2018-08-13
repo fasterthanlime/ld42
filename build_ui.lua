@@ -52,6 +52,7 @@ build_ui = function(state)
     local obj = {
       loc = "palette",
       icon = "road-left-right",
+      cost = constants.road_cost,
       onclick = (function(state)
         state.tool = {
           name = "road"
@@ -69,6 +70,7 @@ build_ui = function(state)
     local obj = {
       loc = "palette",
       icon = b.name,
+      cost = b.cost,
       onclick = (function(state)
         state.tool = {
           name = "building",
@@ -89,6 +91,7 @@ build_ui = function(state)
     local obj = {
       loc = "palette",
       icon = u.name,
+      cost = u.cost,
       onclick = (function(state)
         state.tool = {
           name = "unit",
@@ -134,12 +137,10 @@ build_ui = function(state)
               return 
             end
             if utils.is_shift_down() and c.building then
-              if utils.spend(state, constants.destruction_cost, "destroy building") then
-                c.building = nil
-                return {
-                  build_ui = true
-                }
-              end
+              c.building = nil
+              return {
+                build_ui = true
+              }
             else
               if utils.spend(state, state.tool.building.cost, "build " .. tostring(state.tool.building.name)) then
                 c.building = state.tool.building
@@ -206,7 +207,7 @@ build_ui = function(state)
         if palette_n >= constants.palette.items_per_row then
           palette_n = 0
           palette_x = constants.palette.initial_x
-          palette_y = palette_y + (constants.palette.item_side + constants.palette.item_spacing)
+          palette_y = palette_y + (constants.palette.item_side + constants.palette.item_spacing_y)
         end
       elseif "map" == _exp_0 then
         obj.x, obj.y = utils.object_world_pos(obj.i, obj.j)

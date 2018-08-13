@@ -33,7 +33,7 @@ builtins = {
   {i: 12, j: 5, building: buildings.find("mountains")}
 
   {i: 10, j: 2, building: buildings.find("diamond")}
-  {i: 10, j: 7, building: buildings.find("gold")}
+  {i: 5, j: 7, building: buildings.find("gold")}
 }
 
 builtins

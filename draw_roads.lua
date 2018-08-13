@@ -14,6 +14,9 @@ draw_roads = function(state, old_hover, new_hover)
   if not (old_hover and new_hover) then
     return 
   end
+  if not (old_hover.meta and new_hover.meta) then
+    return 
+  end
   if old_hover == new_hover then
     return 
   end
@@ -41,12 +44,8 @@ draw_roads = function(state, old_hover, new_hover)
   local did_cost = false
   local od = utils.dir_opposite(d)
   if utils.is_shift_down() then
-    if utils.has_dir(old_c, d) or utils.has_dir(new_c, od) then
-      if utils.spend(state, constants.destruction_cost, "destroy roads") then
-        utils.remove_dir(old_c, d)
-        utils.remove_dir(new_c, od)
-      end
-    end
+    utils.remove_dir(old_c, d)
+    utils.remove_dir(new_c, od)
   else
     if not (utils.has_dir(old_c, d) and utils.has_dir(new_c, od)) then
       if utils.spend(state, constants.road_cost, "build roads") then

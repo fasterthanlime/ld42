@@ -15,6 +15,7 @@ constants.palette = do
     items_per_row: 4
     item_side: 40
     item_spacing: 15
+    item_spacing_y: 60
   }
   p.total_width = p.initial_x + (p.item_side + p.item_spacing) * p.items_per_row + 30
   p
@@ -35,9 +36,10 @@ constants.step_duration = .5
 -- costs
 ------------------
 
-constants.start_money = 2000
+constants.start_money = 12000
 constants.road_cost = 150
-constants.destruction_cost = 300
+
+constants.big_font = love.graphics.newFont 18
 
 -------------------
 -- maths

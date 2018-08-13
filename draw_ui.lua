@@ -10,8 +10,11 @@ local draw_ui
 draw_ui = function(state)
   graphics.reset()
   graphics.setColor(1, 1, 1)
-  graphics.print(state.ui.main_text, 20, constants.screen_h - 40)
-  graphics.print(state.ui.status_text, 20, constants.screen_h - 20)
+  graphics.setFont(constants.big_font)
+  graphics.print(state.ui.main_text, 20, constants.screen_h - 60)
+  graphics.reset()
+  graphics.setColor(1, 1, 1)
+  graphics.print(state.ui.status_text, 20, constants.screen_h - 25)
   do
     local _list_0 = state.ui.objects
     for _index_0 = 1, #_list_0 do
@@ -47,6 +50,14 @@ draw_ui = function(state)
             end
           end
         end
+      end
+      if obj.loc == "palette" then
+        if state.money >= obj.cost then
+          graphics.setColor(0.6, 1, 0.6)
+        else
+          graphics.setColor(1, 0.6, 0.6)
+        end
+        graphics.print("$" .. tostring(obj.cost), x, y + 55)
       end
     end
   end
