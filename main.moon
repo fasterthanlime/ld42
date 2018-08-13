@@ -8,15 +8,15 @@ local buildUI
 local newImage
 local buildRoads
 
-numCols = 10
+numCols = 14
 numRows = 10
 slotSide = 60
 
-initialMapX = 30
-initialMapY = 80
+initialMapX = 0
+initialMapY = 60
 
-screenWidth = 1000
-screenHeight = 800
+screenWidth = 1200
+screenHeight = 700
 
 initialPaletteX = 10
 paletteItemsPerRow = 4
@@ -33,8 +33,13 @@ stepIndex = 0
 buildingTab = "infra"
 hasHover = false
 
+money = 1000
+
 pressed = false
 hovered = nil
+
+roadCost = 20
+destructionCost = 10
 
 map = {}
 
@@ -61,13 +66,74 @@ buttonExtras = {
 
 buildings = {
   infra: {
-    "power-plant"
-    "cinema"
-    "library"
+    -- {
+    --   name: "city"
+    --   price: 4000
+    -- }
+    -- {
+    --   name: "power-plant"
+    --   price: 2000
+    -- }
+    -- {
+    --   name: "cinema"
+    --   price: 1400
+    -- }
+    -- {
+    --   name: "library"
+    --   price: 800
+    -- }
+    {
+      name: "oil"
+      price: 800
+    }
+    {
+      name: "copper"
+      price: 800
+    }
+    {
+      name: "gold"
+      price: 800
+    }
+    {
+      name: "diamond"
+      price: 800
+    }
+    {
+      name: "wires"
+      price: 800
+    }
+    {
+      name: "plastic"
+      price: 800
+    }
+    {
+      name: "jewelry"
+      price: 800
+    }
+    {
+      name: "toys"
+      price: 800
+    }
+    {
+      name: "microchips"
+      price: 800
+    }
   }
+
   misc: {
-    "arrow"
+    {
+      name: "cross"
+      price: 0
+    }
+    {
+      name: "bg"
+      price: 0
+    }
   }
+}
+
+misc = {
+  "arrow"
 }
 
 roads = {
@@ -145,7 +211,7 @@ dirs_to_road = (dirs) ->
 
 object_world_pos = (i, j) ->
   x = initialMapX + i * slotSide
-  y = initialMapY + j * slotSide
+  y = initialMapY + (j-1) * slotSide
   return x, y
 
 images = {}
@@ -168,34 +234,48 @@ updateUI = ->
   else
     currentCursor = "pointer"
   
-  if pressed and lastHovered and hovered and lastHovered != hovered
+  if (not currentBuilding) and pressed and lastHovered and hovered and lastHovered != hovered
     diffI = hovered.i - lastHovered.i
     diffJ = hovered.j - lastHovered.j
     if d = vec_to_dir diffI, diffJ
       {x, y} = dir_to_vec(d)
       text = "dragged in dir #{x}, #{y}"
 
-      lastIdx = lastHovered.i + lastHovered.j * numCols
-      idx = hovered.i + hovered.j * numCols
+      lastIdx = lastHovered.i + (lastHovered.j-1) * numCols
+      idx = hovered.i + (hovered.j-1) * numCols
+
+      didCost = false
 
       if keyboard.isDown("lshift") or keyboard.isDown("rshift")
         if map[lastIdx] and map[lastIdx].dirs
+          didCost = true
           map[lastIdx].dirs[d] = nil
         if map[idx] and map[idx].dirs
+          didCost = true
           map[idx].dirs[dir_opposite(d)] = nil
+
+        if didCost
+          money -= destructionCost
       else
         map[lastIdx] or= {}
         map[lastIdx].road = true
         map[lastIdx].dirs or= {}
+        unless map[lastIdx].dirs[d]
+          didCost = true
         map[lastIdx].dirs[d] = true
         map[idx] or= {}
         map[idx].road = true
         map[idx].dirs or= {}
+        unless map[idx].dirs[dir_opposite(d)]
+          didCost = true
         map[idx].dirs[dir_opposite(d)] = true
+
+        if didCost
+          money -= roadCost
       
       buildRoads!
 
-  -- text = "started #{startedAt.hour}:#{startedAt.min}:#{startedAt.sec} | step #{stepIndex}"
+  text = "started #{startedAt.hour}:#{startedAt.min}:#{startedAt.sec} | step #{stepIndex} | money $#{money}"
 
 updateSim = (dt) ->
   roundTicks += dt
@@ -224,7 +304,7 @@ local standardButtons
 buildRoads = ->
   for i=1,numCols
     for j=1,numRows
-      if c = map[i+j*numCols]
+      if c = map[i+(j-1)*numCols]
         if c.road and c.dirs
           c.road = dirs_to_road c.dirs
   buildUI!
@@ -237,10 +317,20 @@ buildUI = ->
   else
     table.insert uiObjects, standardButtons.pause
 
+  do
+    obj = {
+      loc: "palette"
+      icon: images.roads["road-left-right"]
+      onclick: (->
+        currentBuilding = nil
+      )
+    }
+    table.insert uiObjects, obj
+
   for b in *(buildings[buildingTab])
     obj = {
       loc: "palette"
-      icon: images.buildings[b]
+      icon: images.buildings[b.name]
       onclick: (->
         currentBuilding = b
       )
@@ -252,16 +342,16 @@ buildUI = ->
 
   for i=1,numCols
     for j=1,numRows
-      if c = map[i+j*numCols]
+      if c = map[i+(j-1)*numCols]
         obj = {
           :i, :j
           loc: "map"
           building: c.building
         }
         if c.road
-          obj.icon = images.roads[c.road]
-        else
-          obj.icon = images.buildings[c.building]
+          obj.roadIcon = images.roads[c.road]
+        if c.building
+          obj.icon = images.buildings[c.building.name]
 
         table.insert uiObjects, obj
 
@@ -270,12 +360,13 @@ buildUI = ->
       table.insert uiObjects, {
         :i, :j
         loc: "map"
+        meta: true
         icon: images.buttons.slot
         onclick: (->
           if currentBuilding
-            map[i+j*numCols] = {
-              building: currentBuilding
-            }
+            idx = i+(j-1)*numCols
+            map[idx] or= {}
+            map[idx].building = currentBuilding
             buildUI!
         )
       }
@@ -295,8 +386,6 @@ buildUI = ->
         error("uiObject #{i} is nil")
 
       obj.hover = false
-      unless obj.icon
-        error("uiObject #{i} has nil icon (loc #{obj.loc}, onclick #{obj.onclick})")
 
       switch obj.loc
         when "toolbar"
@@ -324,7 +413,7 @@ buildUI = ->
           error "unknown location #{obj.loc}"
 
 love.load = ->
-  for i=1*numCols,numCols*numRows
+  for i=1,numCols*numRows
     map[i] = nil
 
   mouse.setVisible false
@@ -345,12 +434,17 @@ love.load = ->
 
   images.buildings = {}
   for cat, catBuildings in pairs buildings
-    for k in *catBuildings
+    for spec in *catBuildings
+      k = spec.name
       images.buildings[k] = newImage "art/buildings/#{k}.png"
 
   images.roads = {}
   for k in *roads
     images.roads[k] = newImage "art/roads/#{k}.png"
+
+  images.misc = {}
+  for k in *misc
+    images.misc[k] = newImage "art/misc/#{k}.png"
 
   standardButtons = {
     pause: {
@@ -379,16 +473,16 @@ drawFG = ->
 drawUI = ->
   graphics.reset!
   graphics.setColor 1, 1, 1
-  graphics.setFont font
-  graphics.print text, 20, 800-40
+  -- graphics.setFont font
+  graphics.print text, 20, screenHeight-30
 
   do 
     for obj in *uiObjects
       graphics.reset!
       if obj.hover
-        graphics.setColor 1, 1, 1
+        graphics.setColor 0.4, 0.4, 1.0
       else
-        graphics.setColor 1, 1, 1, 0.5
+        graphics.setColor 1, 1, 1
       {:x, :y} = obj
 
       scale = 1
@@ -402,24 +496,28 @@ drawUI = ->
       switch obj.loc 
         when "toolbar"
           graphics.draw images.buttonExtras.bg, x, y, angle, scale, scale
+      if icon = obj.icon
+        if obj.loc == "map" and not obj.meta
+          graphics.draw images.buildings.bg, x, y, angle, scale, scale
+        graphics.draw icon, x, y, angle, scale, scale
+      else if icon = obj.roadIcon
+        graphics.draw icon, x, y, angle, scale, scale
 
-      graphics.draw obj.icon, x, y, angle, scale, scale
-
-  do
-    half = slotSide / 2
-    for i=1,numCols
-      for j=1,numRows
-        if c = map[i+j*numCols]
-          if dirs = c.dirs
-            x, y = object_world_pos i, j
-            for d in pairs dirs
-              angle = dir_to_angle d
-              graphics.reset!
-              graphics.setColor 0.7, 0.7, 1
-              ox = half
-              oy = half
-              scale = 0.8
-              graphics.draw images.buildings.arrow, x + half, y + half, angle, scale, scale, ox, oy
+  -- do
+  --   half = slotSide / 2
+  --   for i=1,numCols
+  --     for j=1,numRows
+  --       if c = map[i+(j-1)*numCols]
+  --         if dirs = c.dirs
+  --           x, y = object_world_pos i, j
+  --           for d in pairs dirs
+  --             angle = dir_to_angle d
+  --             graphics.reset!
+  --             graphics.setColor 0.7, 0.7, 1
+  --             ox = half
+  --             oy = half
+  --             scale = 0.8
+  --             graphics.draw images.misc.arrow, x + half, y + half, angle, scale, scale, ox, oy
 
   do
     x, y = mouse.getPosition!
@@ -427,7 +525,7 @@ drawUI = ->
     img = images.cursors[currentCursor]
     graphics.draw img, x, y
     if currentBuilding
-      img = images.buildings[currentBuilding]
+      img = images.buildings[currentBuilding.name]
       scale = 0.5
       x += 16
       y += 16
