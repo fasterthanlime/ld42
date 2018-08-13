@@ -12,6 +12,10 @@ numCols = 14
 numRows = 10
 slotSide = 60
 
+unitSide = 30
+
+mapUnits = {}
+
 initialMapX = 0
 initialMapY = 60
 
@@ -33,7 +37,7 @@ stepIndex = 0
 buildingTab = "infra"
 hasHover = false
 
-money = 1000
+money = 2000
 
 pressed = false
 hovered = nil
@@ -53,6 +57,7 @@ cursors = {
 }
 currentCursor = "pointer"
 currentBuilding = nil
+currentUnit = nil
 currentTool = "road"
 
 buttons = {
@@ -129,6 +134,21 @@ buildings = {
       price: 0
       terrain: true
     }
+  }
+}
+
+units = {
+  {
+    name: "jeep"
+    price: 1000
+  }
+  {
+    name: "van"
+    price: 2500
+  }
+  {
+    name: "truck"
+    price: 8000
   }
 }
 
@@ -299,7 +319,7 @@ updateUI = ->
     currentCursor = "pointer"
 
   updateRoadBuilding lastHovered, hovered
-  -- text = "started #{startedAt.hour}:#{startedAt.min}:#{startedAt.sec} | step #{stepIndex} | money $#{money}"
+  text = "started #{startedAt.hour}:#{startedAt.min}:#{startedAt.sec} | step #{stepIndex} | money $#{money}"
 
 updateSim = (dt) ->
   roundTicks += dt
@@ -364,6 +384,17 @@ buildUI = ->
       error("could not find icon for building #{b}")
     table.insert uiObjects, obj
 
+  for u in *units
+    obj = {
+      loc: "palette"
+      icon: images.units[u.name]
+      onclick: (->
+        currentTool = "unit"
+        currentUnit = u
+      )
+    }
+    table.insert uiObjects, obj
+
   for i=1,numCols
     for j=1,numRows
       table.insert uiObjects, {
@@ -375,6 +406,12 @@ buildUI = ->
           switch currentTool
             when "road"
               nil -- muffin
+            when "unit"
+              if currentUnit
+                table.insert mapUnits, {
+                  :i, :j
+                  unit: currentUnit
+                }
             when "building"
               idx = i+(j-1)*numCols
               if map[idx] and map[idx].protected
@@ -468,6 +505,11 @@ love.load = ->
     for spec in *catBuildings
       k = spec.name
       images.buildings[k] = newImage "art/buildings/#{k}.png"
+
+  images.units = {}
+  for spec in *units
+    k = spec.name
+    images.units[k] = newImage "art/units/#{k}.png"
 
   images.roads = {}
   for k in *roads
@@ -584,34 +626,56 @@ drawUI = ->
       else if icon = obj.roadIcon
         graphics.draw icon, x, y, angle, scale, scale
 
+drawUnits = ->
+  graphics.reset!
+
+  for u in *mapUnits
+    {:i, :j} = u
+    x, y = object_world_pos i, j
+    unitHalf = unitSide/2
+    ox, oy = unitHalf, unitHalf
+
+    slotHalf = slotSide/2
+    x += slotHalf
+    y += slotHalf
+    angle = 0
+    scale = 1
+    img = images.units[u.unit.name]
+    graphics.draw img, x, y, angle, scale, scale, ox, oy
+
+drawMouse = ->
+  x, y = mouse.getPosition!
+  graphics.reset!
+  img = images.cursors[currentCursor]
+  graphics.draw img, x, y
+
   do
-    x, y = mouse.getPosition!
-    graphics.reset!
-    img = images.cursors[currentCursor]
-    graphics.draw img, x, y
+    img = nil
+    switch currentTool
+      when "building"
+        if currentBuilding
+          img = images.buildings[currentBuilding.name]
+      when "unit"
+        if currentUnit
+          img = images.units[currentUnit.name]
+      when "road"
+        img = images.roads["road-left-right"]
 
-    do
-      img = nil
-      switch currentTool
-        when "building"
-          if currentBuilding
-            img = images.buildings[currentBuilding.name]
-        when "road"
-          img = images.roads["road-left-right"]
-
-      if img
-        scale = 0.5
-        x += 16
-        y += 16
-        if isShiftDown!
-          graphics.setColor 1.0, 0.6, 0.6, 1
-        else
-          graphics.setColor 0.6, 1.0, 0.6, 1
-        graphics.draw img, x, y, 0, scale, scale
+    if img
+      scale = 0.5
+      x += 16
+      y += 16
+      if isShiftDown!
+        graphics.setColor 1.0, 0.6, 0.6, 1
+      else
+        graphics.setColor 0.6, 1.0, 0.6, 1
+      graphics.draw img, x, y, 0, scale, scale
 
 love.draw = ->
   drawFG!
   drawUI!
+  drawUnits!
+  drawMouse!
 
 newImage = (path) ->
   img = graphics.newImage path
