@@ -68,7 +68,8 @@ utils.unit_has_input_for_cell = (u, c) ->
 
   if b.inputs and b.output
     for input in *b.inputs
-      if u.materials[input.name] > 0
+      material_avail = u.materials[input.name] or 0
+      if material_avail > 0
         return true
 
   false

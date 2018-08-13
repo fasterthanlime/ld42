@@ -2,6 +2,7 @@ local graphics
 graphics = require("love").graphics
 local draw_indic
 draw_indic = function(width, x, y, perc)
+  perc = math.min(1, math.max(0, perc))
   local outer = width
   local inner = (outer - 2) * perc
   local indic_height = 4

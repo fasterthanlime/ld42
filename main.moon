@@ -128,7 +128,14 @@ main.do_step = ->
                   state.money += profit
             else if b.inputs and b.output
               outname = b.output.name
-              -- log "we're at a '#{b.name}', let's grab its outputs"
+
+              for input in *b.inputs
+                avail = u.materials[input.name] or 0
+                if avail > 0
+                  log "depositing #{avail} #{input.name} to #{b.name}"
+                  c.bstate.materials[input.name] += avail
+                  u.materials[input.name] -= avail
+
               u.materials[outname] or= 0
               merch_avail = c.bstate.materials[outname]
               space_taken = 0
@@ -137,8 +144,10 @@ main.do_step = ->
               space_avail = u.unit.capacity - space_taken
               merch_taken = math.min(space_avail, merch_avail)
 
-              u.materials[outname] += merch_taken
-              c.bstate.materials[outname] -= merch_taken
+              if merch_taken > 0
+                log "grabbing #{merch_taken} #{outname} from #{b.name}"
+                u.materials[outname] += merch_taken
+                c.bstate.materials[outname] -= merch_taken
 
         u.path = nil
 

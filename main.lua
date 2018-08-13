@@ -159,6 +159,16 @@ main.do_step = function()
               else
                 if b.inputs and b.output then
                   local outname = b.output.name
+                  local _list_0 = b.inputs
+                  for _index_0 = 1, #_list_0 do
+                    local input = _list_0[_index_0]
+                    local avail = u.materials[input.name] or 0
+                    if avail > 0 then
+                      log("depositing " .. tostring(avail) .. " " .. tostring(input.name) .. " to " .. tostring(b.name))
+                      c.bstate.materials[input.name] = c.bstate.materials[input.name] + avail
+                      u.materials[input.name] = u.materials[input.name] - avail
+                    end
+                  end
                   u.materials[outname] = u.materials[outname] or 0
                   local merch_avail = c.bstate.materials[outname]
                   local space_taken = 0
@@ -167,8 +177,11 @@ main.do_step = function()
                   end
                   local space_avail = u.unit.capacity - space_taken
                   local merch_taken = math.min(space_avail, merch_avail)
-                  u.materials[outname] = u.materials[outname] + merch_taken
-                  c.bstate.materials[outname] = c.bstate.materials[outname] - merch_taken
+                  if merch_taken > 0 then
+                    log("grabbing " .. tostring(merch_taken) .. " " .. tostring(outname) .. " from " .. tostring(b.name))
+                    u.materials[outname] = u.materials[outname] + merch_taken
+                    c.bstate.materials[outname] = c.bstate.materials[outname] - merch_taken
+                  end
                 end
               end
             end

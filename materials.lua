@@ -14,6 +14,9 @@ local materials = {
   ["wires"] = {
     price = 3
   },
+  ["plastic"] = {
+    price = 5
+  },
   ["jewelry"] = {
     price = 20
   },

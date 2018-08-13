@@ -47,7 +47,8 @@ utils.unit_has_input_for_cell = function(u, c)
     local _list_0 = b.inputs
     for _index_0 = 1, #_list_0 do
       local input = _list_0[_index_0]
-      if u.materials[input.name] > 0 then
+      local material_avail = u.materials[input.name] or 0
+      if material_avail > 0 then
         return true
       end
     end

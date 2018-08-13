@@ -21,9 +21,9 @@ constants.map = {
   unit_side = 30
 }
 constants.step_duration = 0.2
-constants.start_money = 2500
-constants.road_cost = 150
-constants.max_output = 50
+constants.start_money = 10000
+constants.road_cost = 2000
+constants.max_output = 250
 constants.big_font = love.graphics.newFont(18)
 constants.PI = 3.14159265
 return constants

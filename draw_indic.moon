@@ -2,6 +2,8 @@
 import graphics from require "love"
 
 draw_indic = (width, x, y, perc) ->
+  perc = math.min(1,math.max(0, perc))
+
   outer = width
   inner = (outer-2) * perc
   indic_height = 4

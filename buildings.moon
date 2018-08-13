@@ -3,7 +3,7 @@ buildings = {
   infra: {
     {
       name: "wires"
-      cost: 800
+      cost: 550
       inputs: {
         {name: "copper", amount: 1}
       }
@@ -11,8 +11,7 @@ buildings = {
     }
     {
       name: "plastic"
-      cost: 800
-      output: {name: "plastic"}
+      cost: 1200
       inputs: {
         {name: "oil", amount: 1}
       }
@@ -20,7 +19,7 @@ buildings = {
     }
     {
       name: "jewelry"
-      cost: 800
+      cost: 10000
       inputs: {
         {name: "diamonds", amount: 1}
         {name: "gold", amount: 2}
@@ -29,7 +28,7 @@ buildings = {
     }
     {
       name: "toys"
-      cost: 800
+      cost: 2500
       inputs: {
         {name: "plastic", amount: 2}
       }

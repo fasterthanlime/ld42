@@ -96,9 +96,19 @@ local builtins = {
     building = buildings.find("diamond")
   },
   {
-    i = 5,
+    i = 2,
     j = 7,
+    building = buildings.find("copper")
+  },
+  {
+    i = 6,
+    j = 5,
     building = buildings.find("gold")
+  },
+  {
+    i = 9,
+    j = 9,
+    building = buildings.find("oil")
   }
 }
 return builtins

@@ -2,7 +2,7 @@ local buildings = {
   infra = {
     {
       name = "wires",
-      cost = 800,
+      cost = 550,
       inputs = {
         {
           name = "copper",
@@ -16,10 +16,7 @@ local buildings = {
     },
     {
       name = "plastic",
-      cost = 800,
-      output = {
-        name = "plastic"
-      },
+      cost = 1200,
       inputs = {
         {
           name = "oil",
@@ -33,7 +30,7 @@ local buildings = {
     },
     {
       name = "jewelry",
-      cost = 800,
+      cost = 10000,
       inputs = {
         {
           name = "diamonds",
@@ -51,7 +48,7 @@ local buildings = {
     },
     {
       name = "toys",
-      cost = 800,
+      cost = 2500,
       inputs = {
         {
           name = "plastic",
