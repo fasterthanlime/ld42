@@ -3,10 +3,13 @@ lick.reset = true -- reload game every time it's compiled
 
 import CheckCollision, log from require "utils"
 import graphics, mouse, keyboard, math from love
+tween = require "tween"
 
 local buildUI
 local newImage
 local buildRoads
+
+stepDuration = .5 -- in seconds
 
 numCols = 14
 numRows = 10
@@ -266,9 +269,13 @@ step = ->
     d = random_dir!
     {diffI, diffJ} = dir_to_vec d
     log "diffI = #{diffI}, diffJ = #{diffJ}!"
-    u.i += diffI
-    u.j += diffJ
-    io.flush!
+    u.d = d
+    u.angle = dir_to_angle d
+    u.tween = tween.new stepDuration, u, {
+      i: u.i + diffI,
+      j: u.j + diffJ,
+      -- angle: dir_to_angle(d)
+    }
 
 isShiftDown = ->
   keyboard.isDown("lshift") or keyboard.isDown("rshift")
@@ -343,9 +350,14 @@ updateUI = ->
   text = "started #{startedAt.hour}:#{startedAt.min}:#{startedAt.sec} | step #{stepIndex} | money $#{money}"
 
 updateSim = (dt) ->
+  for u in *mapUnits
+    if u.tween
+      if u.tween\update dt
+        u.tween = nil
+
   roundTicks += dt
-  if roundTicks > 1
-    roundTicks -= 1
+  if roundTicks > stepDuration
+    roundTicks -= stepDuration
     step()
 
 love.update = (dt) ->
@@ -431,6 +443,8 @@ buildUI = ->
               if currentUnit
                 table.insert mapUnits, {
                   :i, :j
+                  d: dir.u
+                  angle: 0
                   unit: currentUnit
                 }
             when "building"
@@ -656,7 +670,7 @@ drawUnits = ->
   graphics.reset!
 
   for u in *mapUnits
-    {:i, :j} = u
+    {:i, :j, :d, :angle} = u
     x, y = object_world_pos i, j
     unitHalf = unitSide/2
     ox, oy = unitHalf, unitHalf
@@ -664,7 +678,6 @@ drawUnits = ->
     slotHalf = slotSide/2
     x += slotHalf
     y += slotHalf
-    angle = 0
     scale = 1
     img = images.units[u.unit.name]
     graphics.draw img, x, y, angle, scale, scale, ox, oy
