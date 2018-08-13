@@ -16,20 +16,20 @@ constants.palette = do
     item_side: 40
     item_spacing: 15
   }
-  p.total_width = p.initial_x + (p.item_side + p.item_spacing) p.items_per_row + 30
+  p.total_width = p.initial_x + (p.item_side + p.item_spacing) * p.items_per_row + 30
   p
 
 constants.map = {
   initial_x: 0
   initial_y: 60
   slot_side: 60
-  unit_side: 60
+  unit_side: 30
 }
 
 ---------------------------
 -- time variables
 ---------------------------
-constants.stepDuration = .5
+constants.step_duration = .5
 
 ------------------
 -- costs

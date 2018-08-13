@@ -3,6 +3,7 @@ constants = require "constants"
 
 state = {}
 
+state.started_at = nil
 state.money = constants.start_money
 
 state.map = {

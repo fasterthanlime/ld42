@@ -1,6 +1,9 @@
 
 utils = require "utils"
 constants = require "constants"
+buildings = require "buildings"
+units = require "units"
+pprint = require "pprint"
 {:log, :Dir} = utils
 
 standard_buttons = {
@@ -8,15 +11,17 @@ standard_buttons = {
     loc: "toolbar"
     icon: "pause"
     onclick: ((state) ->
-      state.paused = true
+      log "pausing"
+      state.sim.paused = true
       return {build_ui: true}
     )
   }
   play: {
-    loc: "pause"
+    loc: "toolbar"
     icon: "play"
     onclick: ((state) ->
-      state.paused = false
+      log "resuming"
+      state.sim.paused = false
       return {build_ui: true}
     )
   }
@@ -30,7 +35,7 @@ standard_buttons = {
 build_ui = (state) ->
   objects = {}
 
-  if paused
+  if state.sim.paused
     table.insert objects, standard_buttons.play
   else
     table.insert objects, standard_buttons.pause
@@ -40,17 +45,19 @@ build_ui = (state) ->
       loc: "palette"
       icon: "road-left-right"
       onclick: ((state)->
-        state.ui.tool = {name: "road"}
+        state.tool = {name: "road"}
+        return {build_ui: true}
       )
     }
     table.insert objects, obj
 
-  for b in *(buildings[buildingTab])
+  for b in *(buildings[state.ui.building_tab])
     obj = {
       loc: "palette"
       icon: b.name
       onclick: ((state) ->
-        state.ui.tool = {name: "building", building: b}
+        state.tool = {name: "building", building: b}
+        return {build_ui: true}
       )
     }
     unless obj.icon 
@@ -62,19 +69,22 @@ build_ui = (state) ->
       loc: "palette"
       icon: u.name
       onclick: ((state) ->
-        state.ui.tool = {name: "unit", unit: u}
+        state.tool = {name: "unit", unit: u}
+        return {build_ui: true}
       )
     }
     table.insert objects, obj
 
-  for i=1,num_cols
-    for j=1,num_rows
+  for i=1,constants.num_cols
+    for j=1,constants.num_rows
       table.insert objects, {
         :i, :j
         loc: "map"
         meta: true
         icon: "slot"
         onclick: ((state) ->
+          log "slot clicked! tool ="
+          pprint state.tool
           switch state.tool.name
             when "road"
               nil -- muffin
@@ -87,22 +97,22 @@ build_ui = (state) ->
                   unit: state.tool.unit
                 }
             when "building"
-              ids = utils.ij_to_idx i, j
-              if map[idx] and map[idx].protected
-                return
+              idx = utils.ij_to_index i, j
+              c = state.map.cells[idx]
+              return if c and c.protected
               if utils.is_shift_down!
-                map[idx].building = nil
+                c.building = nil
                 return {build_ui: true}
               else
-                map[idx] or= {}
-                map[idx].building = state.tool.building
+                c.building = state.tool.building
                 return {build_ui: true}
         )
       }
 
-  for i=1,num_cols
-    for j=1,num_rows
-      if c = map[i+(j-1)*num_cols]
+  for i=1,constants.num_cols
+    for j=1,constants.num_rows
+      idx = utils.ij_to_index i, j
+      if c = state.map.cells[idx]
         obj = {
           :i, :j
           loc: "map"
@@ -110,9 +120,9 @@ build_ui = (state) ->
           protected: c.protected
         }
         if c.road
-          obj.road_icon = images.roads[c.road]
+          obj.road_icon = c.road
         if c.building
-          obj.icon = images.buildings[c.building.name]
+          obj.icon = c.building.name
 
         table.insert objects, obj
 
@@ -146,11 +156,11 @@ build_ui = (state) ->
           obj.h = constants.palette.item_side
 
           palette_n += 1
-          palette_x += constants.palette.item_side + paletteItemSpacing
-          if palette_n >= paletteItemsPerRow
+          palette_x += constants.palette.item_side + constants.palette.item_spacing
+          if palette_n >= constants.palette.items_per_row
             palette_n = 0
             palette_x = constants.palette.initial_x
-            palette_y += constants.palette.item_side + paletteItemSpacing
+            palette_y += constants.palette.item_side + constants.palette.item_spacing
         when "map"
           obj.x, obj.y = utils.object_world_pos obj.i, obj.j
           obj.w, obj.h = constants.map.slot_side, constants.map.slot_side
@@ -158,4 +168,6 @@ build_ui = (state) ->
           error "unknown location #{obj.loc}"
 
   state.ui.objects = objects
+
+build_ui
   

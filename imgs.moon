@@ -71,6 +71,6 @@ imgs.load_all = (name) ->
     img = graphics.newImage path
     unless img
       error("image not found: #{img}")
-    images[name] = img
+    imgs.images[name] = img
 
-
+imgs

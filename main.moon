@@ -7,6 +7,7 @@ import graphics, mouse, keyboard, math from love
 
 -- external modules
 tween = require "tween"
+pprint = require "pprint"
 
 -- our own modules
 constants = require "constants"
@@ -16,10 +17,14 @@ state = require "state"
 imgs = require "imgs"
 buildings = require "buildings"
 units = require "units"
+builtins = require "builtins"
 
 -- important functions
 draw_roads = require "draw_roads"
 build_ui = require "build_ui"
+draw_ui = require "draw_ui"
+draw_units = require "draw_units"
+draw_mouse = require "draw_mouse"
 
 main = {}
 
@@ -42,7 +47,8 @@ main.update_ui = ->
   old_hover = state.ui.hovered
   state.ui.hovered = nil
   for obj in *state.ui.objects
-    if obj.hover = utils.is_ui_object_hovered obj
+    obj.hover = utils.is_ui_object_hovered obj
+    if obj.hover and not state.ui.hovered
       state.ui.hovered = obj
 
   if state.ui.hovered
@@ -51,10 +57,13 @@ main.update_ui = ->
     state.ui.cursor = "pointer"
 
   -- draw roads if necessary
+  new_hover = state.ui.hovered
   if draw_roads state, old_hover, new_hover
+    log ">>>>>> auto-tiling roads!"
     main.autotile_roads!
 
-  state.ui.status_text = "started #{startedAt.hour}:#{startedAt.min}:#{startedAt.sec} | step #{stepIndex} | money $#{money}"
+  start = state.started_at
+  state.ui.status_text = "started #{start.hour}:#{start.min}:#{start.sec} | step #{state.sim.step} | money $#{state.money}"
 
 main.update_sim = (dt) ->
   state.sim.ticks += dt
@@ -68,24 +77,25 @@ main.update_sim = (dt) ->
         u.tween = nil
 
 love.update = (dt) ->
-  unless paused
+  unless state.sim.paused
     main.update_sim dt
   main.update_ui!
 
 love.mousepressed = (x, y, button, istouch, presses) ->
   state.ui.pressed = true 
 
-  if state.ui.hovered and state.ui.hovered.onclick
-    if ret = state.ui.hovered.onclick state
-      if ret.build_ui
-        main.build_ui!
-      if ret.autotile_roads!
-        main.autotile_roads!
+  if he = state.ui.hovered
+    if he.onclick
+      if ret = he.onclick state
+        if ret.build_ui
+          log "rebuilding ui after onclick"
+          main.build_ui!
+        if ret.autotile_roads
+          log "autotiling roads after onclick"
+          main.autotile_roads!
 
 love.mousereleased = (x, y, button, istouch, presses) ->
   state.ui.pressed = false
-
-local standardButtons
 
 main.build_ui = ->
   build_ui state
@@ -93,9 +103,10 @@ main.build_ui = ->
 -- picks the right sprite to display for roads
 main.autotile_roads = ->
   utils.each_map_index (i, j) ->
-    if c = map[i+(j-1)*num_cols]
-      if c.road and c.dirs
-        c.road = dirs_to_road c.dirs
+    idx = utils.ij_to_index i, j
+    if c = state.map.cells[idx]
+      if c.dirs
+        c.road = utils.dirs_to_road c.dirs
   main.build_ui!
 
 love.load = ->
@@ -105,21 +116,24 @@ love.load = ->
   -- we have our own pointer
   mouse.setVisible false
 
-  startedAt = os.date '*t' 
+  imgs.load_all!
+  state.started_at = os.date '*t' 
 
-  for i=1,num_cols*num_rows
-    map[i] = {}
+  utils.each_map_index (i, j) ->
+    log "preparing cell at #{i}, #{j}"
+    idx = utils.ij_to_index i, j
+    state.map.cells[idx] = {}
 
   for b in *builtins
     {:i, :j, :building} = b
-    idx = utils.ij_to_idx i, j
+    idx = utils.ij_to_index i, j
     c = {
       :i, :j
       :building
       protected: true
     }
     log "built-in #{building.name} at #{i}, #{j}"
-    map[idx] = c
+    state.map.cells[idx] = c
   main.build_ui!
 
 love.draw = ->

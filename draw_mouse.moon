@@ -13,13 +13,11 @@ draw_mouse = (state) ->
     img = nil
     switch state.tool.name
       when "building"
-        if currentBuilding
-          img = images.buildings[currentBuilding.name]
+        img = imgs.get state.tool.building.name
       when "unit"
-        if currentUnit
-          img = images.units[currentUnit.name]
+        img = imgs.get state.tool.unit.name
       when "road"
-        img = images.roads["road-left-right"]
+        img = imgs.get "road-left-right"
 
     if img
       scale = 0.5
@@ -30,3 +28,5 @@ draw_mouse = (state) ->
       else
         graphics.setColor 0.6, 1.0, 0.6, 1
       graphics.draw img, x, y, 0, scale, scale
+
+draw_mouse

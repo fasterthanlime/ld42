@@ -1,6 +1,7 @@
 
 constants = require "constants"
-import mouse from require "love"
+{:PI} = constants
+import mouse, keyboard, random from require "love"
 
 utils = {}
 
@@ -52,15 +53,15 @@ utils.each_map_index = (f) ->
       return if f(i, j) == false
 
 utils.object_world_pos = (i, j) ->
-  x = initialMapX + i * slotSide
-  y = initialMapY + (j-1) * slotSide
+  x = constants.map.initial_x + i * constants.map.slot_side
+  y = constants.map.initial_y + (j-1) * constants.map.slot_side
   return x, y
 
 utils.is_valid_ij = (i, j) ->
   return false if i < 1
-  return false if i > numCols
+  return false if i > constants.num_cols
   return false if j < 1
-  return false if j > numRows
+  return false if j > constants.num_rows
   true
 
 --------------------------------
@@ -126,13 +127,13 @@ utils.random_dir = ->
 
 utils.dirs_to_road = (dirs) ->
   name = "road"
-  if dirs[dir.l]
+  if dirs[Dir.l]
     name = "#{name}-left"
-  if dirs[dir.r]
+  if dirs[Dir.r]
     name = "#{name}-right"
-  if dirs[dir.u]
+  if dirs[Dir.u]
     name = "#{name}-up"
-  if dirs[dir.d]
+  if dirs[Dir.d]
     name = "#{name}-down"
   return name
 
