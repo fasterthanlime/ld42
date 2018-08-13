@@ -39,16 +39,15 @@ draw_ui = function(state)
         graphics.draw(imgs.get("button-bg"), x, y, angle, scale, scale)
       end
       do
+        local icon = obj.road_icon
+        if icon then
+          graphics.draw(imgs.get(icon), x, y, angle, scale, scale)
+        end
+      end
+      do
         local icon = obj.icon
         if icon then
           graphics.draw(imgs.get(icon), x, y, angle, scale, scale)
-        else
-          do
-            icon = obj.road_icon
-            if icon then
-              graphics.draw(imgs.get(icon), x, y, angle, scale, scale)
-            end
-          end
         end
       end
       if obj.loc == "palette" then

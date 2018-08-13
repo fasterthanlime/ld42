@@ -45,7 +45,11 @@ main.do_step = function()
   local valid_node_func
   valid_node_func = function(node, neighbor)
     local i, j = utils.obj_ij_diff(node, neighbor)
-    return utils.vec_to_dir(i, j) ~= nil
+    local d = utils.vec_to_dir(i, j)
+    if d == nil then
+      return false
+    end
+    return utils.has_dir(node.c, d)
   end
   local neighbor_nodes
   neighbor_nodes = function(node)
@@ -55,6 +59,9 @@ main.do_step = function()
       neighbors = { }
       local add_neighbor
       add_neighbor = function(n)
+        if n == node then
+          return 
+        end
         for _index_0 = 1, #neighbors do
           local nn = neighbors[_index_0]
           if nn == n then
@@ -113,6 +120,20 @@ main.do_step = function()
           break
         end
         log("found " .. tostring(#neighbors) .. " neighbors")
+        local building_neighbors = { }
+        for _index_0 = 1, #neighbors do
+          local n = neighbors[_index_0]
+          if n.c.building then
+            table.insert(building_neighbors, n)
+          end
+        end
+        neighbors = building_neighbors
+        log("found " .. tostring(#neighbors) .. " building neighbors")
+        if #neighbors == 0 then
+          log("cannot move vehicle " .. tostring(u_index) .. " (no building neighbors)")
+          _continue_0 = true
+          break
+        end
         local goal = neighbors[love.math.random(#neighbors)]
         log("picked goal: ")
         pprint(goal)
@@ -138,12 +159,14 @@ main.do_step = function()
         local node = u.path.nodes[u.path.index]
         local diff_i = node.i - u.i
         local diff_j = node.j - u.j
+        log("diff = " .. tostring(diff_i) .. ", " .. tostring(diff_j))
         local d = utils.vec_to_dir(diff_i, diff_j)
+        pprint(d)
         u.d = d
         u.angle = utils.dir_to_angle(d)
         u.tween = tween.new(constants.step_duration, u, {
-          i = u.i + diff_i,
-          j = u.j + diff_j
+          i = node.i,
+          j = node.j
         })
       end
       _continue_0 = true
@@ -189,6 +212,8 @@ main.update_sim = function(dt)
     if u.tween then
       if u.tween:update(dt) then
         u.tween = nil
+        u.i = math.floor(u.i)
+        u.j = math.floor(u.j)
       end
     end
   end

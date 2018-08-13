@@ -99,12 +99,16 @@ utils.dir_to_angle = (d) ->
     when Dir.u then 0
     else 0
 
+feq = (a, b) ->
+  math.abs(a-b)<0.1
+utils.feq = feq
+
 utils.vec_to_dir = (x, y) ->
   switch true
-    when x == -1 and y == 0 then Dir.l
-    when x == 1 and y == 0 then Dir.r
-    when x == 0 and y == -1 then Dir.u
-    when x == 0 and y == 1 then Dir.d
+    when feq(x, -1) and feq(y, 0) then Dir.l
+    when feq(x, 1) and feq(y, 0) then Dir.r
+    when feq(x, 0) and feq(y, -1) then Dir.u
+    when feq(x, 0) and feq(y, 1) then Dir.d
     else nil
 
 utils.dir_opposite = (d) ->

@@ -34,9 +34,9 @@ draw_ui = (state) ->
       switch obj.loc 
         when "toolbar"
           graphics.draw imgs.get("button-bg"), x, y, angle, scale, scale
-      if icon = obj.icon
+      if icon = obj.road_icon
         graphics.draw imgs.get(icon), x, y, angle, scale, scale
-      else if icon = obj.road_icon
+      if icon = obj.icon
         graphics.draw imgs.get(icon), x, y, angle, scale, scale
 
       if obj.loc == "palette"

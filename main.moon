@@ -47,7 +47,9 @@ main.do_step = ->
 
   valid_node_func = (node, neighbor) ->
     i, j = utils.obj_ij_diff node, neighbor
-    utils.vec_to_dir(i, j) != nil
+    d = utils.vec_to_dir(i, j)
+    return false if d == nil
+    return utils.has_dir node.c, d
 
   neighbor_nodes = (node) ->
     neighbors = {}
@@ -56,6 +58,8 @@ main.do_step = ->
       old_neighbors = neighbors
       neighbors = {}
       add_neighbor = (n) ->
+        if n == node
+          return
         for nn in *neighbors
           if nn == n
             return
@@ -97,6 +101,17 @@ main.do_step = ->
         continue
       log "found #{#neighbors} neighbors"
 
+      building_neighbors = {}
+      for n in *neighbors
+        if n.c.building
+          table.insert building_neighbors, n
+      neighbors = building_neighbors
+      log "found #{#neighbors} building neighbors"
+
+      if #neighbors == 0
+        log "cannot move vehicle #{u_index} (no building neighbors)"
+        continue
+
       goal = neighbors[love.math.random(#neighbors)]
       log "picked goal: "
       pprint goal
@@ -118,12 +133,14 @@ main.do_step = ->
       node = u.path.nodes[u.path.index]
       diff_i = node.i - u.i
       diff_j = node.j - u.j
+      log "diff = #{diff_i}, #{diff_j}"
       d = utils.vec_to_dir diff_i, diff_j
+      pprint d
       u.d = d
       u.angle = utils.dir_to_angle d
       u.tween = tween.new constants.step_duration, u, {
-        i: u.i + diff_i,
-        j: u.j + diff_j,
+        i: node.i
+        j: node.j
       }
 
 main.update_ui = ->
@@ -159,6 +176,8 @@ main.update_sim = (dt) ->
     if u.tween
       if u.tween\update dt
         u.tween = nil
+        u.i = math.floor u.i
+        u.j = math.floor u.j
 
 love.update = (dt) ->
   unless state.sim.paused

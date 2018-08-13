@@ -126,15 +126,20 @@ utils.dir_to_angle = function(d)
     return 0
   end
 end
+local feq
+feq = function(a, b)
+  return math.abs(a - b) < 0.1
+end
+utils.feq = feq
 utils.vec_to_dir = function(x, y)
   local _exp_0 = true
-  if (x == -1 and y == 0) == _exp_0 then
+  if (feq(x, -1) and feq(y, 0)) == _exp_0 then
     return Dir.l
-  elseif (x == 1 and y == 0) == _exp_0 then
+  elseif (feq(x, 1) and feq(y, 0)) == _exp_0 then
     return Dir.r
-  elseif (x == 0 and y == -1) == _exp_0 then
+  elseif (feq(x, 0) and feq(y, -1)) == _exp_0 then
     return Dir.u
-  elseif (x == 0 and y == 1) == _exp_0 then
+  elseif (feq(x, 0) and feq(y, 1)) == _exp_0 then
     return Dir.d
   else
     return nil
