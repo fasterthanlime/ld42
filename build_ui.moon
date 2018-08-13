@@ -14,7 +14,7 @@ standard_buttons = {
   }
   play: {
     loc: "pause"
-    icon: images.buttons.play
+    icon: "play"
     onclick: ((state) ->
       state.paused = false
       return {build_ui: true}
@@ -31,14 +31,14 @@ build_ui = (state) ->
   objects = {}
 
   if paused
-    table.insert objects, standardButtons.play
+    table.insert objects, standard_buttons.play
   else
-    table.insert objects, standardButtons.pause
+    table.insert objects, standard_buttons.pause
 
   do
     obj = {
       loc: "palette"
-      icon: images.roads["road-left-right"]
+      icon: "road-left-right"
       onclick: ((state)->
         state.ui.tool = {name: "road"}
       )
@@ -48,7 +48,7 @@ build_ui = (state) ->
   for b in *(buildings[buildingTab])
     obj = {
       loc: "palette"
-      icon: images.buildings[b.name]
+      icon: b.name
       onclick: ((state) ->
         state.ui.tool = {name: "building", building: b}
       )
@@ -60,7 +60,7 @@ build_ui = (state) ->
   for u in *units
     obj = {
       loc: "palette"
-      icon: images.units[u.name]
+      icon: u.name
       onclick: ((state) ->
         state.ui.tool = {name: "unit", unit: u}
       )
@@ -73,7 +73,7 @@ build_ui = (state) ->
         :i, :j
         loc: "map"
         meta: true
-        icon: images.buttons.slot
+        icon: "slot"
         onclick: ((state) ->
           switch state.tool.name
             when "road"
@@ -87,10 +87,10 @@ build_ui = (state) ->
                   unit: state.tool.unit
                 }
             when "building"
-              idx = i+(j-1)*num_cols
+              ids = utils.ij_to_idx i, j
               if map[idx] and map[idx].protected
                 return
-              if isShiftDown!
+              if utils.is_shift_down!
                 map[idx].building = nil
                 return {build_ui: true}
               else
@@ -121,7 +121,7 @@ build_ui = (state) ->
     toolbar_x = 10
     toolbar_y = 10
         
-    paletteBaseX = constants.screen_w - constants.palette.total_width
+    palette_base_x = constants.screen_w - constants.palette.total_width
     palette_x = constants.palette.initial_x
     palette_y = 100
     palette_n = 0
@@ -140,20 +140,20 @@ build_ui = (state) ->
           obj.h = 40
           toolbar_x += 50
         when "palette"
-          obj.x = palette_x + paletteBaseX
+          obj.x = palette_x + palette_base_x
           obj.y = palette_y
-          obj.w = paletteItemSide
-          obj.h = paletteItemSide
+          obj.w = constants.palette.item_side
+          obj.h = constants.palette.item_side
 
           palette_n += 1
-          palette_x += paletteItemSide + paletteItemSpacing
+          palette_x += constants.palette.item_side + paletteItemSpacing
           if palette_n >= paletteItemsPerRow
             palette_n = 0
-            palette_x = initialPaletteX
-            palette_y += paletteItemSide + paletteItemSpacing
+            palette_x = constants.palette.initial_x
+            palette_y += constants.palette.item_side + paletteItemSpacing
         when "map"
-          obj.x, obj.y = object_world_pos obj.i, obj.j
-          obj.w, obj.h = slotSide, slotSide
+          obj.x, obj.y = utils.object_world_pos obj.i, obj.j
+          obj.w, obj.h = constants.map.slot_side, constants.map.slot_side
         else
           error "unknown location #{obj.loc}"
 

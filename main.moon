@@ -110,44 +110,9 @@ love.load = ->
   for i=1,num_cols*num_rows
     map[i] = {}
 
-  builtins = {
-    {i: 3, j: 4, building: findBuilding("terrain", "city")}
-
-    ----
-
-    {i: 5, j: 3, building: findBuilding("terrain", "mountains")}
-    {i: 5, j: 4, building: findBuilding("terrain", "mountains")}
-    {i: 5, j: 5, building: findBuilding("terrain", "mountains")}
-
-    {i: 6, j: 3, building: findBuilding("terrain", "mountains")}
-    {i: 6, j: 4, building: findBuilding("terrain", "mountains")}
-    {i: 6, j: 5, building: findBuilding("terrain", "mountains")}
-
-    {i: 7, j: 3, building: findBuilding("terrain", "mountains")}
-    {i: 7, j: 4, building: findBuilding("terrain", "mountains")}
-
-    ----
-
-    {i: 9, j: 3, building: findBuilding("terrain", "mountains")}
-    {i: 9, j: 4, building: findBuilding("terrain", "mountains")}
-
-    {i: 10, j: 3, building: findBuilding("terrain", "mountains")}
-    {i: 10, j: 4, building: findBuilding("terrain", "mountains")}
-
-    {i: 11, j: 3, building: findBuilding("terrain", "mountains")}
-    {i: 11, j: 4, building: findBuilding("terrain", "mountains")}
-
-    {i: 12, j: 3, building: findBuilding("terrain", "mountains")}
-    {i: 12, j: 4, building: findBuilding("terrain", "mountains")}
-    {i: 12, j: 5, building: findBuilding("terrain", "mountains")}
-
-    {i: 10, j: 2, building: findBuilding("mine", "diamond")}
-    {i: 10, j: 7, building: findBuilding("mine", "gold")}
-  }
-
   for b in *builtins
     {:i, :j, :building} = b
-    idx = i+(j-1)*num_cols
+    idx = utils.ij_to_idx i, j
     c = {
       :i, :j
       :building
@@ -155,99 +120,9 @@ love.load = ->
     }
     log "built-in #{building.name} at #{i}, #{j}"
     map[idx] = c
-  buildRoads!
-
-  buildUI!
-
-drawFG = ->
-  nil -- muffin
-
-drawUI = ->
-  graphics.reset!
-  graphics.setColor 1, 1, 1
-  -- graphics.setFont font
-  graphics.print text, 20, screenHeight-30
-
-  do 
-    for obj in *uiObjects
-      graphics.reset!
-      if obj.hover and not obj.protected and obj.loc != "map"
-        graphics.setColor 0.8, 0.8, 1.0
-      else
-        graphics.setColor 1, 1, 1
-      {:x, :y} = obj
-
-      scale = 1
-      angle = 0
-
-      switch obj.loc 
-        when "palette"
-          scale = 0.75
-          angle = obj.hover and 0 or 3.14 * 1/64
-
-      switch obj.loc 
-        when "toolbar"
-          graphics.draw images.buttonExtras.bg, x, y, angle, scale, scale
-      if icon = obj.icon
-        -- if obj.loc == "map" and not obj.meta
-        --   graphics.draw images.buildings.bg, x, y, angle, scale, scale
-        graphics.draw icon, x, y, angle, scale, scale
-      else if icon = obj.roadIcon
-        graphics.draw icon, x, y, angle, scale, scale
-
-drawUnits = ->
-  graphics.reset!
-
-  for u in *mapUnits
-    {:i, :j, :d, :angle} = u
-    x, y = object_world_pos i, j
-    unitHalf = unitSide/2
-    ox, oy = unitHalf, unitHalf
-
-    slotHalf = slotSide/2
-    x += slotHalf
-    y += slotHalf
-    scale = 1
-    img = images.units[u.unit.name]
-    graphics.draw img, x, y, angle, scale, scale, ox, oy
-
-drawMouse = ->
-  x, y = mouse.getPosition!
-  graphics.reset!
-  img = images.cursors[currentCursor]
-  graphics.draw img, x, y
-
-  do
-    img = nil
-    switch currentTool
-      when "building"
-        if currentBuilding
-          img = images.buildings[currentBuilding.name]
-      when "unit"
-        if currentUnit
-          img = images.units[currentUnit.name]
-      when "road"
-        img = images.roads["road-left-right"]
-
-    if img
-      scale = 0.5
-      x += 16
-      y += 16
-      if isShiftDown!
-        graphics.setColor 1.0, 0.6, 0.6, 1
-      else
-        graphics.setColor 0.6, 1.0, 0.6, 1
-      graphics.draw img, x, y, 0, scale, scale
+  main.build_ui!
 
 love.draw = ->
-  drawFG!
-  drawUI!
-  drawUnits!
-  drawMouse!
-
-newImage = (path) ->
-  img = graphics.newImage path
-  unless img
-    error("image not found: #{img}")
-  log "loaded #{path}"
-  img
+  draw_ui state
+  draw_units state
+  draw_mouse state
