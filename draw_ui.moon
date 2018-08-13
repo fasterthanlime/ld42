@@ -7,9 +7,17 @@ draw_indic = require "draw_indic"
 
 draw_ui = (state) ->
   graphics.reset!
-  graphics.setColor 1, 1, 1
   graphics.setFont constants.big_font
-  graphics.print state.ui.main_text, 20, constants.screen_h-60
+
+  do
+    graphics.setColor 1, 1, 1
+    graphics.print state.ui.paused_text, 20, constants.screen_h-70
+
+    graphics.setColor 0.4, 1, 0.4
+    graphics.print state.ui.money_text, 300, constants.screen_h-70
+
+    graphics.setColor 0.4, 0.4, 1
+    graphics.print state.ui.units_text, 600, constants.screen_h-70
 
   graphics.reset!
   graphics.setColor 1, 1, 1
@@ -18,10 +26,14 @@ draw_ui = (state) ->
   do 
     for obj in *state.ui.objects
       graphics.reset!
+      alpha = 1
+      if obj.loc == "map"
+        alpha = 0.7
+
       if obj.hover and not obj.protected
-        graphics.setColor 0.8, 0.8, 1.0
+        graphics.setColor 0.8, 0.8, 1.0, alpha
       else
-        graphics.setColor 1, 1, 1
+        graphics.setColor 1, 1, 1, alpha
       {:x, :y} = obj
 
       scale = 1
@@ -45,7 +57,7 @@ draw_ui = (state) ->
           graphics.setColor 0.6, 1, 0.6
         else
           graphics.setColor 1, 0.6, 0.6
-        graphics.print "$#{obj.cost}", x, y+55
+        graphics.print "#{utils.format_price(obj.cost)}", x, y+55
 
       if obj.loc == "map"
         {:i, :j} = obj

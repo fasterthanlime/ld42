@@ -34,34 +34,41 @@ main.do_step = function()
         do
           local b = c.building
           if b then
-            local has_all_material = true
             if not (b.inputs and b.output) then
               _continue_0 = true
               break
             end
             local outname = b.output.name
-            if c.bstate.materials[outname] > constants.max_output then
-              _continue_0 = true
-              break
-            end
-            local _list_0 = b.inputs
-            for _index_0 = 1, #_list_0 do
-              local input = _list_0[_index_0]
-              if c.bstate.materials[input.name] < input.amount then
-                has_all_material = false
-              end
-            end
-            if has_all_material then
-              local _list_1 = b.inputs
-              for _index_0 = 1, #_list_1 do
-                local input = _list_1[_index_0]
-                c.bstate.materials[input.name] = c.bstate.materials[input.name] - input.amount
-              end
-              c.bstate.materials[outname] = c.bstate.materials[outname] + b.output.amount
-              if #b.inputs > 0 then
-                log("producing " .. tostring(b.output.amount) .. " " .. tostring(outname) .. " at " .. tostring(i) .. ", " .. tostring(j))
-                pprint(c.bstate.materials)
-                log("-------------")
+            local max_rounds = 5
+            for i = 1, max_rounds do
+              local _continue_1 = false
+              repeat
+                local has_all_material = true
+                if c.bstate.materials[outname] > constants.max_output then
+                  _continue_1 = true
+                  break
+                end
+                local _list_0 = b.inputs
+                for _index_0 = 1, #_list_0 do
+                  local input = _list_0[_index_0]
+                  if c.bstate.materials[input.name] < input.amount then
+                    has_all_material = false
+                  end
+                end
+                if has_all_material then
+                  local _list_1 = b.inputs
+                  for _index_0 = 1, #_list_1 do
+                    local input = _list_1[_index_0]
+                    c.bstate.materials[input.name] = c.bstate.materials[input.name] - input.amount
+                  end
+                  c.bstate.materials[outname] = c.bstate.materials[outname] + b.output.amount
+                else
+                  i = max_rounds
+                end
+                _continue_1 = true
+              until true
+              if not _continue_1 then
+                break
               end
             end
           end
@@ -163,10 +170,12 @@ main.do_step = function()
                   for _index_0 = 1, #_list_0 do
                     local input = _list_0[_index_0]
                     local avail = u.materials[input.name] or 0
-                    if avail > 0 then
-                      log("depositing " .. tostring(avail) .. " " .. tostring(input.name) .. " to " .. tostring(b.name))
-                      c.bstate.materials[input.name] = c.bstate.materials[input.name] + avail
-                      u.materials[input.name] = u.materials[input.name] - avail
+                    local already_there = c.bstate.materials[input.name] or 0
+                    local needing = constants.max_input - already_there
+                    local depositing = math.min(needing, avail)
+                    if depositing > 0 then
+                      c.bstate.materials[input.name] = c.bstate.materials[input.name] + depositing
+                      u.materials[input.name] = u.materials[input.name] - depositing
                     end
                   end
                   u.materials[outname] = u.materials[outname] or 0
@@ -178,7 +187,6 @@ main.do_step = function()
                   local space_avail = u.unit.capacity - space_taken
                   local merch_taken = math.min(space_avail, merch_avail)
                   if merch_taken > 0 then
-                    log("grabbing " .. tostring(merch_taken) .. " " .. tostring(outname) .. " from " .. tostring(b.name))
                     u.materials[outname] = u.materials[outname] + merch_taken
                     c.bstate.materials[outname] = c.bstate.materials[outname] - merch_taken
                   end
@@ -280,11 +288,17 @@ main.update_ui = function()
   end
   local new_hover = state.ui.hovered
   if draw_roads(state, old_hover, new_hover) then
-    log(">>>>>> auto-tiling roads!")
     main.autotile_roads()
   end
   local start = state.started_at
-  state.ui.main_text = "started " .. tostring(start.hour) .. ":" .. tostring(start.min) .. ":" .. tostring(start.sec) .. " | step " .. tostring(state.sim.step) .. " | money $" .. tostring(state.money)
+  local current_units = #state.map.units
+  local paused_text = "running"
+  if state.sim.paused then
+    paused_text = "paused"
+  end
+  state.ui.paused_text = paused_text
+  state.ui.money_text = tostring(utils.format_price(state.money))
+  state.ui.units_text = tostring(current_units) .. " / " .. tostring(constants.max_units) .. " units"
 end
 main.update_sim = function(dt)
   state.sim.ticks = state.sim.ticks + dt

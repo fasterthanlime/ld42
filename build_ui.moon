@@ -33,6 +33,15 @@ standard_buttons = {
       return {restart: true}
     )
   }
+  clear_units: {
+    loc: "toolbar"
+    icon: "clear-units"
+    onclick: ((state) ->
+      state.map.units = {}
+      log "clearing all units"
+      return {}
+    )
+  }
 }
 
 -- React-ish 'render' method, rebuilds `state.ui.objects` from
@@ -50,11 +59,24 @@ build_ui = (state) ->
     table.insert objects, standard_buttons.play
   else
     table.insert objects, standard_buttons.pause
+  table.insert objects, standard_buttons.clear_units
   table.insert objects, standard_buttons.restart
 
   --------------------------------
   -- palette
   --------------------------------
+  for u in *units
+    obj = {
+      loc: "palette"
+      icon: u.name
+      cost: u.cost
+      onclick: ((state) ->
+        state.tool = {name: "unit", unit: u}
+        return {build_ui: true}
+      )
+    }
+    table.insert objects, obj
+
   do
     obj = {
       loc: "palette"
@@ -81,18 +103,6 @@ build_ui = (state) ->
       error("could not find icon for building #{b}")
     table.insert objects, obj
 
-  for u in *units
-    obj = {
-      loc: "palette"
-      icon: u.name
-      cost: u.cost
-      onclick: ((state) ->
-        state.tool = {name: "unit", unit: u}
-        return {build_ui: true}
-      )
-    }
-    table.insert objects, obj
-
   --------------------------------
   -- map
   --------------------------------
@@ -110,6 +120,9 @@ build_ui = (state) ->
             when "road"
               nil -- muffin
             when "unit"
+              if #state.map.units >= constants.max_units
+                status_text = "too many units! hit the 'clear units' button"
+                return
               if state.tool.unit
                 if utils.spend state, state.tool.unit.cost, "purchase #{state.tool.unit.name}"
                   table.insert state.map.units, {

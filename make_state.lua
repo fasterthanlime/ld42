@@ -12,6 +12,9 @@ make_state = function()
     objects = { },
     cursor = "pointer",
     main_text = "",
+    paused_text = "",
+    money_text = "",
+    units_text = "",
     status_text = "",
     building_tab = "infra",
     pressed = false,
@@ -21,7 +24,7 @@ make_state = function()
     name = "road"
   }
   state.sim = {
-    paused = true,
+    paused = false,
     ticks = 0,
     step = 0
   }

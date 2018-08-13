@@ -37,6 +37,15 @@ local standard_buttons = {
         restart = true
       }
     end)
+  },
+  clear_units = {
+    loc = "toolbar",
+    icon = "clear-units",
+    onclick = (function(state)
+      state.map.units = { }
+      log("clearing all units")
+      return { }
+    end)
   }
 }
 local build_ui
@@ -47,7 +56,26 @@ build_ui = function(state)
   else
     table.insert(objects, standard_buttons.pause)
   end
+  table.insert(objects, standard_buttons.clear_units)
   table.insert(objects, standard_buttons.restart)
+  for _index_0 = 1, #units do
+    local u = units[_index_0]
+    local obj = {
+      loc = "palette",
+      icon = u.name,
+      cost = u.cost,
+      onclick = (function(state)
+        state.tool = {
+          name = "unit",
+          unit = u
+        }
+        return {
+          build_ui = true
+        }
+      end)
+    }
+    table.insert(objects, obj)
+  end
   do
     local obj = {
       loc = "palette",
@@ -86,24 +114,6 @@ build_ui = function(state)
     end
     table.insert(objects, obj)
   end
-  for _index_0 = 1, #units do
-    local u = units[_index_0]
-    local obj = {
-      loc = "palette",
-      icon = u.name,
-      cost = u.cost,
-      onclick = (function(state)
-        state.tool = {
-          name = "unit",
-          unit = u
-        }
-        return {
-          build_ui = true
-        }
-      end)
-    }
-    table.insert(objects, obj)
-  end
   for i = 1, constants.num_cols do
     for j = 1, constants.num_rows do
       table.insert(objects, {
@@ -119,6 +129,10 @@ build_ui = function(state)
           if "road" == _exp_0 then
             return nil
           elseif "unit" == _exp_0 then
+            if #state.map.units >= constants.max_units then
+              local status_text = "too many units! hit the 'clear units' button"
+              return 
+            end
             if state.tool.unit then
               if utils.spend(state, state.tool.unit.cost, "purchase " .. tostring(state.tool.unit.name)) then
                 return table.insert(state.map.units, {

@@ -204,13 +204,23 @@ utils.remove_dir = (c, d) ->
 -------------------
 
 utils.spend = (state, amount, action) ->
-  if state.money > amount
+  if state.money >= amount
     state.money -= amount
-    state.ui.status_text = "just spent $#{amount} to #{action}"
+    state.ui.status_text = "just spent #{utils.format_price(amount)} to #{action}"
     true
   else
-    state.ui.status_text = "can't afford to spend $#{amount} to #{action}"
+    state.ui.status_text = "can't afford to spend #{utils.format_price(amount)} to #{action}"
     false
+
+utils.format_price = (p) ->
+  if p > 1000
+    thousands = p / 1000
+    return "$#{utils.round thousands, 2}K"
+  "$#{p}"
+
+utils.round = (num, numDecimalPlaces) ->
+  mult = 10^(numDecimalPlaces or 0)
+  math.floor(num * mult + 0.5) / mult
 
 utils
 

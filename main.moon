@@ -37,25 +37,24 @@ main.do_step = ->
       idx = utils.ij_to_index i, j
       c = state.map.cells[idx]
       if b = c.building
-        has_all_material = true
         continue unless b.inputs and b.output
         outname = b.output.name
 
-        if c.bstate.materials[outname] > constants.max_output
-          continue
+        max_rounds = 5
+        for i=1,max_rounds
+          has_all_material = true
+          if c.bstate.materials[outname] > constants.max_output
+            continue
 
-        for input in *b.inputs
-          if c.bstate.materials[input.name] < input.amount
-            has_all_material = false
-        if has_all_material
           for input in *b.inputs
-            c.bstate.materials[input.name] -= input.amount
-          c.bstate.materials[outname] += b.output.amount
-
-          if #b.inputs > 0
-            log "producing #{b.output.amount} #{outname} at #{i}, #{j}"
-            pprint c.bstate.materials
-            log "-------------"
+            if c.bstate.materials[input.name] < input.amount
+              has_all_material = false
+          if has_all_material
+            for input in *b.inputs
+              c.bstate.materials[input.name] -= input.amount
+            c.bstate.materials[outname] += b.output.amount
+          else
+            i = max_rounds
 
   -- step vehicles
   all_nodes = {}
@@ -131,10 +130,13 @@ main.do_step = ->
 
               for input in *b.inputs
                 avail = u.materials[input.name] or 0
-                if avail > 0
-                  log "depositing #{avail} #{input.name} to #{b.name}"
-                  c.bstate.materials[input.name] += avail
-                  u.materials[input.name] -= avail
+                already_there = c.bstate.materials[input.name] or 0
+                needing = constants.max_input - already_there
+                depositing = math.min(needing, avail)
+                if depositing > 0
+                  -- log "depositing #{depositing} #{input.name} to #{b.name}"
+                  c.bstate.materials[input.name] += depositing
+                  u.materials[input.name] -= depositing
 
               u.materials[outname] or= 0
               merch_avail = c.bstate.materials[outname]
@@ -145,7 +147,7 @@ main.do_step = ->
               merch_taken = math.min(space_avail, merch_avail)
 
               if merch_taken > 0
-                log "grabbing #{merch_taken} #{outname} from #{b.name}"
+                -- log "grabbing #{merch_taken} #{outname} from #{b.name}"
                 u.materials[outname] += merch_taken
                 c.bstate.materials[outname] -= merch_taken
 
@@ -234,11 +236,17 @@ main.update_ui = ->
   -- draw roads if necessary
   new_hover = state.ui.hovered
   if draw_roads state, old_hover, new_hover
-    log ">>>>>> auto-tiling roads!"
     main.autotile_roads!
 
   start = state.started_at
-  state.ui.main_text = "started #{start.hour}:#{start.min}:#{start.sec} | step #{state.sim.step} | money $#{state.money}"
+  current_units = #state.map.units
+
+  paused_text = "running"
+  if state.sim.paused
+    paused_text = "paused"
+  state.ui.paused_text = paused_text
+  state.ui.money_text = "#{utils.format_price(state.money)}"
+  state.ui.units_text = "#{current_units} / #{constants.max_units} units"
 
 main.update_sim = (dt) ->
   state.sim.ticks += dt

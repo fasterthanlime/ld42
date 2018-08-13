@@ -34,6 +34,7 @@ to_load = {
   {"buttons", "play"}
   {"buttons", "slot"}
   {"buttons", "toolbar"}
+  {"buttons", "clear-units"}
 
   {"misc", "arrow"}
 

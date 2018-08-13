@@ -108,6 +108,10 @@ local to_load = {
     "toolbar"
   },
   {
+    "buttons",
+    "clear-units"
+  },
+  {
     "misc",
     "arrow"
   },

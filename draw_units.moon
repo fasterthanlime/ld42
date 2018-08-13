@@ -29,6 +29,6 @@ draw_units = (state) ->
 
     occupancy = space_taken / space_avail
 
-    draw_indic 30, original_x, original_y-20, occupancy
+    draw_indic 10, original_x, original_y-20, occupancy
 
 draw_units

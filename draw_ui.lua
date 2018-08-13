@@ -10,9 +10,15 @@ local draw_indic = require("draw_indic")
 local draw_ui
 draw_ui = function(state)
   graphics.reset()
-  graphics.setColor(1, 1, 1)
   graphics.setFont(constants.big_font)
-  graphics.print(state.ui.main_text, 20, constants.screen_h - 60)
+  do
+    graphics.setColor(1, 1, 1)
+    graphics.print(state.ui.paused_text, 20, constants.screen_h - 70)
+    graphics.setColor(0.4, 1, 0.4)
+    graphics.print(state.ui.money_text, 300, constants.screen_h - 70)
+    graphics.setColor(0.4, 0.4, 1)
+    graphics.print(state.ui.units_text, 600, constants.screen_h - 70)
+  end
   graphics.reset()
   graphics.setColor(1, 1, 1)
   graphics.print(state.ui.status_text, 20, constants.screen_h - 25)
@@ -21,10 +27,14 @@ draw_ui = function(state)
     for _index_0 = 1, #_list_0 do
       local obj = _list_0[_index_0]
       graphics.reset()
+      local alpha = 1
+      if obj.loc == "map" then
+        alpha = 0.7
+      end
       if obj.hover and not obj.protected then
-        graphics.setColor(0.8, 0.8, 1.0)
+        graphics.setColor(0.8, 0.8, 1.0, alpha)
       else
-        graphics.setColor(1, 1, 1)
+        graphics.setColor(1, 1, 1, alpha)
       end
       local x, y
       x, y = obj.x, obj.y
@@ -57,7 +67,7 @@ draw_ui = function(state)
         else
           graphics.setColor(1, 0.6, 0.6)
         end
-        graphics.print("$" .. tostring(obj.cost), x, y + 55)
+        graphics.print(tostring(utils.format_price(obj.cost)), x, y + 55)
       end
       if obj.loc == "map" then
         local i, j

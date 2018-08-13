@@ -246,13 +246,24 @@ utils.remove_dir = function(c, d)
   return changed
 end
 utils.spend = function(state, amount, action)
-  if state.money > amount then
+  if state.money >= amount then
     state.money = state.money - amount
-    state.ui.status_text = "just spent $" .. tostring(amount) .. " to " .. tostring(action)
+    state.ui.status_text = "just spent " .. tostring(utils.format_price(amount)) .. " to " .. tostring(action)
     return true
   else
-    state.ui.status_text = "can't afford to spend $" .. tostring(amount) .. " to " .. tostring(action)
+    state.ui.status_text = "can't afford to spend " .. tostring(utils.format_price(amount)) .. " to " .. tostring(action)
     return false
   end
+end
+utils.format_price = function(p)
+  if p > 1000 then
+    local thousands = p / 1000
+    return "$" .. tostring(utils.round(thousands, 2)) .. "K"
+  end
+  return "$" .. tostring(p)
+end
+utils.round = function(num, numDecimalPlaces)
+  local mult = 10 ^ (numDecimalPlaces or 0)
+  return math.floor(num * mult + 0.5) / mult
 end
 return utils

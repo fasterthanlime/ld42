@@ -17,6 +17,9 @@ make_state = ->
 
     cursor: "pointer"
     main_text: ""
+    paused_text: ""
+    money_text: ""
+    units_text: ""
     status_text: ""
 
     building_tab: "infra"
@@ -29,7 +32,7 @@ make_state = ->
   }
 
   state.sim = {
-    paused: true
+    paused: false
     ticks: 0
     step: 0
   }

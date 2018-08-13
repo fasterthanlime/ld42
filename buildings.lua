@@ -2,7 +2,7 @@ local buildings = {
   infra = {
     {
       name = "wires",
-      cost = 550,
+      cost = 10000,
       inputs = {
         {
           name = "copper",
@@ -11,12 +11,12 @@ local buildings = {
       },
       output = {
         name = "wires",
-        amount = 10
+        amount = 8
       }
     },
     {
       name = "plastic",
-      cost = 1200,
+      cost = 15000,
       inputs = {
         {
           name = "oil",
@@ -25,12 +25,12 @@ local buildings = {
       },
       output = {
         name = "plastic",
-        amount = 4
+        amount = 5
       }
     },
     {
       name = "jewelry",
-      cost = 10000,
+      cost = 40000,
       inputs = {
         {
           name = "diamonds",
@@ -48,7 +48,7 @@ local buildings = {
     },
     {
       name = "toys",
-      cost = 2500,
+      cost = 25000,
       inputs = {
         {
           name = "plastic",
@@ -57,12 +57,12 @@ local buildings = {
       },
       output = {
         name = "toys",
-        amount = 10
+        amount = 3
       }
     },
     {
       name = "microchips",
-      cost = 800,
+      cost = 50000,
       inputs = {
         {
           name = "diamonds",
@@ -73,44 +73,46 @@ local buildings = {
         name = "microchips",
         amount = 1
       }
-    }
-  },
-  mine = {
+    },
     {
       name = "oil",
-      cost = 800,
+      cost = 400000,
       inputs = { },
       output = {
         name = "oil",
-        amount = 2
+        amount = 4
       }
     },
     {
       name = "copper",
-      cost = 800,
+      cost = 100000,
       inputs = { },
       output = {
         name = "copper",
-        amount = 2
+        amount = 18
       }
     },
     {
       name = "gold",
-      cost = 800,
+      cost = 200000,
       inputs = { },
       output = {
         name = "gold",
-        amount = 2
+        amount = 6
       }
     },
     {
       name = "diamond",
-      cost = 800,
+      cost = 600000,
       inputs = { },
       output = {
         name = "diamonds",
         amount = 2
       }
+    },
+    {
+      name = "city",
+      cost = 1000000
     }
   },
   misc = {
@@ -124,10 +126,6 @@ local buildings = {
     }
   },
   terrain = {
-    {
-      name = "city",
-      cost = 0
-    },
     {
       name = "mountains",
       cost = 0,
