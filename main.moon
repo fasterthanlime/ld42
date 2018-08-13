@@ -14,6 +14,7 @@ make_state = require "make_state"
 imgs = require "imgs"
 buildings = require "buildings"
 units = require "units"
+materials = require "materials"
 builtins = require "builtins"
 
 -- important functions
@@ -30,7 +31,32 @@ main = {}
 main.do_step = ->
   state.sim.step += 1
 
-  log "stepping!"
+  -- step buildings
+  for i=1,constants.num_cols
+    for j=1,constants.num_rows
+      idx = utils.ij_to_index i, j
+      c = state.map.cells[idx]
+      if b = c.building
+        has_all_material = true
+        continue unless b.inputs and b.output
+        outname = b.output.name
+
+        if c.bstate.materials[outname] > constants.max_output
+          continue
+
+        for input in *b.inputs
+          if c.bstate.materials[input.name] < input.amount
+            has_all_material = false
+        if has_all_material
+          for input in *b.inputs
+            c.bstate.materials[input.name] -= input.amount
+          c.bstate.materials[outname] += b.output.amount
+
+          log "producing #{b.output.amount} #{outname} at #{i}, #{j}"
+          pprint c.bstate.materials
+          log "-------------"
+
+  -- step vehicles
   all_nodes = {}
   for i=1,constants.num_cols
     for j=1,constants.num_rows
@@ -43,7 +69,7 @@ main.do_step = ->
           :i, :j
           c: c
         }
-  log "got #{#all_nodes} nodes total"
+  -- log "got #{#all_nodes} nodes total"
 
   valid_node_func = (node, neighbor) ->
     i, j = utils.obj_ij_diff node, neighbor
@@ -82,6 +108,30 @@ main.do_step = ->
       u.path.index += 1
       if u.path.index > #u.path.nodes
         log "completed path!"
+        last_node = u.path.nodes[u.path.index-1]
+
+        log "last node was: "
+        pprint last_node
+
+        c = last_node.c
+        if b = c.building
+          switch b.name
+            when "city"
+              log "we're in the city! do we got anything to sell?"
+              for k, v in pairs u.materials
+                if v > 0
+                  log "let's sell #{k}"
+                  profit = materials[k].price * v
+                  log "...for $#{profit}"
+                  u.materials[k] = 0
+                  state.money += profit
+            else if b.inputs and b.output
+              outname = b.output.name
+              log "we're at a '#{b.name}', let's grab its outputs"
+              u.materials[outname] or= 0
+              u.materials[outname] += c.bstate.materials[outname]
+              c.bstate.materials[outname] = 0
+
         u.path = nil
 
     unless u.path
@@ -99,22 +149,22 @@ main.do_step = ->
       if #neighbors == 0
         log "cannot move vehicle #{u_index} (no neighbors)"
         continue
-      log "found #{#neighbors} neighbors"
+      -- log "found #{#neighbors} neighbors"
 
       building_neighbors = {}
       for n in *neighbors
         if n.c.building
           table.insert building_neighbors, n
       neighbors = building_neighbors
-      log "found #{#neighbors} building neighbors"
+      -- log "found #{#neighbors} building neighbors"
 
       if #neighbors == 0
-        log "cannot move vehicle #{u_index} (no building neighbors)"
+        -- log "cannot move vehicle #{u_index} (no building neighbors)"
         continue
 
       goal = neighbors[love.math.random(#neighbors)]
-      log "picked goal: "
-      pprint goal
+      -- log "picked goal: "
+      -- pprint goal
 
       if nodes = astar.path start, goal, all_nodes, ignore, valid_node_func
         log "found path with #{#nodes} nodes! setting..."
@@ -123,22 +173,20 @@ main.do_step = ->
           index: 1
         }
       else
-        log "cannot move vehicle #{u_index} (could not find path from)"
-        pprint start
-        log "to: "
-        pprint goal
+        -- log "cannot move vehicle #{u_index} (could not find path from)"
+        -- pprint start
+        -- log "to: "
+        -- pprint goal
         continue
 
     if u.path
       node = u.path.nodes[u.path.index]
       diff_i = node.i - u.i
       diff_j = node.j - u.j
-      log "diff = #{diff_i}, #{diff_j}"
       d = utils.vec_to_dir diff_i, diff_j
-      pprint d
       u.d = d
       u.angle = utils.dir_to_angle d
-      u.tween = tween.new constants.step_duration, u, {
+      u.tween = tween.new constants.step_duration*0.9, u, {
         i: node.i
         j: node.j
       }
@@ -244,6 +292,7 @@ main.start = ->
       protected: true
     }
     log "built-in #{building.name} at #{i}, #{j}"
+    utils.init_building c
     state.map.cells[idx] = c
   main.build_ui!
 

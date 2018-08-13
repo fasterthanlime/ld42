@@ -30,14 +30,16 @@ constants.map = {
 ---------------------------
 -- time variables
 ---------------------------
-constants.step_duration = .5
+constants.step_duration = 0.2
 
 ------------------
 -- costs
 ------------------
 
-constants.start_money = 12000
+-- constants.start_money = 12000
+constants.start_money = 2500
 constants.road_cost = 150
+constants.max_output = 50
 
 constants.big_font = love.graphics.newFont 18
 

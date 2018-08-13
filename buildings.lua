@@ -3,7 +3,7 @@ local buildings = {
     {
       name = "wires",
       cost = 800,
-      input = {
+      inputs = {
         {
           name = "copper",
           amount = 1
@@ -20,7 +20,7 @@ local buildings = {
       output = {
         name = "plastic"
       },
-      input = {
+      inputs = {
         {
           name = "oil",
           amount = 1
@@ -34,7 +34,7 @@ local buildings = {
     {
       name = "jewelry",
       cost = 800,
-      input = {
+      inputs = {
         {
           name = "diamonds",
           amount = 1
@@ -52,7 +52,7 @@ local buildings = {
     {
       name = "toys",
       cost = 800,
-      input = {
+      inputs = {
         {
           name = "plastic",
           amount = 2
@@ -66,7 +66,7 @@ local buildings = {
     {
       name = "microchips",
       cost = 800,
-      input = {
+      inputs = {
         {
           name = "diamonds",
           amount = 5
@@ -82,37 +82,37 @@ local buildings = {
     {
       name = "oil",
       cost = 800,
-      input = { },
+      inputs = { },
       output = {
         name = "oil",
-        amount = 1
+        amount = 4
       }
     },
     {
       name = "copper",
       cost = 800,
-      input = { },
+      inputs = { },
       output = {
         name = "copper",
-        amount = 1
+        amount = 4
       }
     },
     {
       name = "gold",
       cost = 800,
-      input = { },
+      inputs = { },
       output = {
         name = "gold",
-        amount = 1
+        amount = 4
       }
     },
     {
       name = "diamond",
       cost = 800,
-      input = { },
+      inputs = { },
       output = {
-        name = "diamond",
-        amount = 1
+        name = "diamonds",
+        amount = 4
       }
     }
   },

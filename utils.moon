@@ -41,6 +41,14 @@ utils.is_shift_down = ->
 -- map stuff
 --------------------------------
 
+utils.init_building = (c) ->
+  c.bstate = {}
+  if c.building and c.building.inputs and c.building.output
+    c.bstate.materials = {}
+    for input in *c.building.inputs
+      c.bstate.materials[input.name] = 0
+    c.bstate.materials[c.building.output.name] = 0
+
 utils.ij_to_index = (i, j) ->
   i + (j-1) * constants.num_cols
 

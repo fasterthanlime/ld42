@@ -117,6 +117,7 @@ build_ui = (state) ->
                     d: Dir.u
                     angle: 0
                     unit: state.tool.unit
+                    materials: {}
                   }
             when "building"
               idx = utils.ij_to_index i, j
@@ -128,6 +129,7 @@ build_ui = (state) ->
               else
                 if utils.spend state, state.tool.building.cost, "build #{state.tool.building.name}"
                   c.building = state.tool.building
+                  utils.init_building c
                   return {build_ui: true}
         )
       }

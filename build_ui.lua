@@ -126,7 +126,8 @@ build_ui = function(state)
                   j = j,
                   d = Dir.u,
                   angle = 0,
-                  unit = state.tool.unit
+                  unit = state.tool.unit,
+                  materials = { }
                 })
               end
             end
@@ -144,6 +145,7 @@ build_ui = function(state)
             else
               if utils.spend(state, state.tool.building.cost, "build " .. tostring(state.tool.building.name)) then
                 c.building = state.tool.building
+                utils.init_building(c)
                 return {
                   build_ui = true
                 }

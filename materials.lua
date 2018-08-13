@@ -6,10 +6,10 @@ local materials = {
     price = 6
   },
   ["gold"] = {
-    price = 6
+    price = 8
   },
   ["diamonds"] = {
-    price = 10
+    price = 12
   },
   ["wires"] = {
     price = 3

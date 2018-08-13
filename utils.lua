@@ -20,6 +20,18 @@ end
 utils.is_shift_down = function()
   return keyboard.isDown("lshift") or keyboard.isDown("rshift")
 end
+utils.init_building = function(c)
+  c.bstate = { }
+  if c.building and c.building.inputs and c.building.output then
+    c.bstate.materials = { }
+    local _list_0 = c.building.inputs
+    for _index_0 = 1, #_list_0 do
+      local input = _list_0[_index_0]
+      c.bstate.materials[input.name] = 0
+    end
+    c.bstate.materials[c.building.output.name] = 0
+  end
+end
 utils.ij_to_index = function(i, j)
   return i + (j - 1) * constants.num_cols
 end

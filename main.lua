@@ -14,6 +14,7 @@ local make_state = require("make_state")
 local imgs = require("imgs")
 local buildings = require("buildings")
 local units = require("units")
+local materials = require("materials")
 local builtins = require("builtins")
 local draw_roads = require("draw_roads")
 local build_ui = require("build_ui")
@@ -24,7 +25,52 @@ local state = nil
 local main = { }
 main.do_step = function()
   state.sim.step = state.sim.step + 1
-  log("stepping!")
+  for i = 1, constants.num_cols do
+    for j = 1, constants.num_rows do
+      local _continue_0 = false
+      repeat
+        local idx = utils.ij_to_index(i, j)
+        local c = state.map.cells[idx]
+        do
+          local b = c.building
+          if b then
+            local has_all_material = true
+            if not (b.inputs and b.output) then
+              _continue_0 = true
+              break
+            end
+            local outname = b.output.name
+            if c.bstate.materials[outname] > constants.max_output then
+              _continue_0 = true
+              break
+            end
+            local _list_0 = b.inputs
+            for _index_0 = 1, #_list_0 do
+              local input = _list_0[_index_0]
+              if c.bstate.materials[input.name] < input.amount then
+                has_all_material = false
+              end
+            end
+            if has_all_material then
+              local _list_1 = b.inputs
+              for _index_0 = 1, #_list_1 do
+                local input = _list_1[_index_0]
+                c.bstate.materials[input.name] = c.bstate.materials[input.name] - input.amount
+              end
+              c.bstate.materials[outname] = c.bstate.materials[outname] + b.output.amount
+              log("producing " .. tostring(b.output.amount) .. " " .. tostring(outname) .. " at " .. tostring(i) .. ", " .. tostring(j))
+              pprint(c.bstate.materials)
+              log("-------------")
+            end
+          end
+        end
+        _continue_0 = true
+      until true
+      if not _continue_0 then
+        break
+      end
+    end
+  end
   local all_nodes = { }
   for i = 1, constants.num_cols do
     for j = 1, constants.num_rows do
@@ -41,7 +87,6 @@ main.do_step = function()
       end
     end
   end
-  log("got " .. tostring(#all_nodes) .. " nodes total")
   local valid_node_func
   valid_node_func = function(node, neighbor)
     local i, j = utils.obj_ij_diff(node, neighbor)
@@ -96,6 +141,36 @@ main.do_step = function()
         u.path.index = u.path.index + 1
         if u.path.index > #u.path.nodes then
           log("completed path!")
+          local last_node = u.path.nodes[u.path.index - 1]
+          log("last node was: ")
+          pprint(last_node)
+          local c = last_node.c
+          do
+            local b = c.building
+            if b then
+              local _exp_0 = b.name
+              if "city" == _exp_0 then
+                log("we're in the city! do we got anything to sell?")
+                for k, v in pairs(u.materials) do
+                  if v > 0 then
+                    log("let's sell " .. tostring(k))
+                    local profit = materials[k].price * v
+                    log("...for $" .. tostring(profit))
+                    u.materials[k] = 0
+                    state.money = state.money + profit
+                  end
+                end
+              else
+                if b.inputs and b.output then
+                  local outname = b.output.name
+                  log("we're at a '" .. tostring(b.name) .. "', let's grab its outputs")
+                  u.materials[outname] = u.materials[outname] or 0
+                  u.materials[outname] = u.materials[outname] + c.bstate.materials[outname]
+                  c.bstate.materials[outname] = 0
+                end
+              end
+            end
+          end
           u.path = nil
         end
       end
@@ -119,7 +194,6 @@ main.do_step = function()
           _continue_0 = true
           break
         end
-        log("found " .. tostring(#neighbors) .. " neighbors")
         local building_neighbors = { }
         for _index_0 = 1, #neighbors do
           local n = neighbors[_index_0]
@@ -128,15 +202,11 @@ main.do_step = function()
           end
         end
         neighbors = building_neighbors
-        log("found " .. tostring(#neighbors) .. " building neighbors")
         if #neighbors == 0 then
-          log("cannot move vehicle " .. tostring(u_index) .. " (no building neighbors)")
           _continue_0 = true
           break
         end
         local goal = neighbors[love.math.random(#neighbors)]
-        log("picked goal: ")
-        pprint(goal)
         do
           local nodes = astar.path(start, goal, all_nodes, ignore, valid_node_func)
           if nodes then
@@ -146,10 +216,6 @@ main.do_step = function()
               index = 1
             }
           else
-            log("cannot move vehicle " .. tostring(u_index) .. " (could not find path from)")
-            pprint(start)
-            log("to: ")
-            pprint(goal)
             _continue_0 = true
             break
           end
@@ -159,12 +225,10 @@ main.do_step = function()
         local node = u.path.nodes[u.path.index]
         local diff_i = node.i - u.i
         local diff_j = node.j - u.j
-        log("diff = " .. tostring(diff_i) .. ", " .. tostring(diff_j))
         local d = utils.vec_to_dir(diff_i, diff_j)
-        pprint(d)
         u.d = d
         u.angle = utils.dir_to_angle(d)
-        u.tween = tween.new(constants.step_duration, u, {
+        u.tween = tween.new(constants.step_duration * 0.9, u, {
           i = node.i,
           j = node.j
         })
@@ -297,6 +361,7 @@ main.start = function()
       protected = true
     }
     log("built-in " .. tostring(building.name) .. " at " .. tostring(i) .. ", " .. tostring(j))
+    utils.init_building(c)
     state.map.cells[idx] = c
   end
   return main.build_ui()
