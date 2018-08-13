@@ -53,6 +53,7 @@ cursors = {
 }
 currentCursor = "pointer"
 currentBuilding = nil
+currentTool = "road"
 
 buttons = {
   "play"
@@ -66,38 +67,6 @@ buttonExtras = {
 
 buildings = {
   infra: {
-    -- {
-    --   name: "city"
-    --   price: 4000
-    -- }
-    -- {
-    --   name: "power-plant"
-    --   price: 2000
-    -- }
-    -- {
-    --   name: "cinema"
-    --   price: 1400
-    -- }
-    -- {
-    --   name: "library"
-    --   price: 800
-    -- }
-    {
-      name: "oil"
-      price: 800
-    }
-    {
-      name: "copper"
-      price: 800
-    }
-    {
-      name: "gold"
-      price: 800
-    }
-    {
-      name: "diamond"
-      price: 800
-    }
     {
       name: "wires"
       price: 800
@@ -120,6 +89,25 @@ buildings = {
     }
   }
 
+  mine: {
+    {
+      name: "oil"
+      price: 800
+    }
+    {
+      name: "copper"
+      price: 800
+    }
+    {
+      name: "gold"
+      price: 800
+    }
+    {
+      name: "diamond"
+      price: 800
+    }
+  }
+
   misc: {
     {
       name: "cross"
@@ -130,7 +118,25 @@ buildings = {
       price: 0
     }
   }
+
+  terrain: {
+    {
+      name: "city"
+      price: 0
+    }
+    {
+      name: "mountains"
+      price: 0
+      terrain: true
+    }
+  }
 }
+
+findBuilding = (cat, name) ->
+  for b in *buildings[cat]
+    if b.name == name
+      return b
+  nil
 
 misc = {
   "arrow"
@@ -223,6 +229,64 @@ uiObjectTouchesMouse = (obj) ->
 step = ->
   stepIndex += 1
 
+isShiftDown = ->
+  keyboard.isDown("lshift") or keyboard.isDown("rshift")
+
+updateRoadBuilding = (oldHover, newHover) ->
+  return unless currentTool == "road"
+  return unless pressed
+  return unless oldHover and newHover
+  return if oldHover == newHover
+
+  diffI = newHover.i - oldHover.i
+  diffJ = newHover.j - oldHover.j
+  d = vec_to_dir diffI, diffJ
+  return unless d
+
+  {x, y} = dir_to_vec(d)
+  oldIdx = oldHover.i + (oldHover.j-1) * numCols
+  newIdx = newHover.i + (newHover.j-1) * numCols
+
+  oldC = map[oldIdx]
+  newC = map[newIdx]
+
+  return if newC.building and newC.building.terrain
+  return if oldC.building and oldC.building.terrain
+
+  didCost = false
+
+  if isShiftDown!
+    -- delete roads
+    if map[oldIdx] and map[oldIdx].dirs and map[oldIdx].dirs[d]
+      didCost = true
+      map[oldIdx].dirs[d] = nil
+    if map[newIdx] and map[newIdx].dirs and map[newIdx].dirs[dir_opposite(d)]
+      didCost = true
+      map[newIdx].dirs[dir_opposite(d)] = nil
+
+    if didCost
+      money -= destructionCost
+  else
+    -- add roads
+    map[oldIdx] or= {}
+    map[oldIdx].road = true
+    map[oldIdx].dirs or= {}
+    unless map[oldIdx].dirs[d]
+      didCost = true
+    map[oldIdx].dirs[d] = true
+
+    map[newIdx] or= {}
+    map[newIdx].road = true
+    map[newIdx].dirs or= {}
+    unless map[newIdx].dirs[dir_opposite(d)]
+      didCost = true
+    map[newIdx].dirs[dir_opposite(d)] = true
+
+    if didCost
+      money -= roadCost
+  
+  buildRoads!
+
 updateUI = ->
   lastHovered = hovered
   hovered = nil
@@ -233,49 +297,9 @@ updateUI = ->
     currentCursor = "hand"
   else
     currentCursor = "pointer"
-  
-  if (not currentBuilding) and pressed and lastHovered and hovered and lastHovered != hovered
-    diffI = hovered.i - lastHovered.i
-    diffJ = hovered.j - lastHovered.j
-    if d = vec_to_dir diffI, diffJ
-      {x, y} = dir_to_vec(d)
-      text = "dragged in dir #{x}, #{y}"
 
-      lastIdx = lastHovered.i + (lastHovered.j-1) * numCols
-      idx = hovered.i + (hovered.j-1) * numCols
-
-      didCost = false
-
-      if keyboard.isDown("lshift") or keyboard.isDown("rshift")
-        if map[lastIdx] and map[lastIdx].dirs
-          didCost = true
-          map[lastIdx].dirs[d] = nil
-        if map[idx] and map[idx].dirs
-          didCost = true
-          map[idx].dirs[dir_opposite(d)] = nil
-
-        if didCost
-          money -= destructionCost
-      else
-        map[lastIdx] or= {}
-        map[lastIdx].road = true
-        map[lastIdx].dirs or= {}
-        unless map[lastIdx].dirs[d]
-          didCost = true
-        map[lastIdx].dirs[d] = true
-        map[idx] or= {}
-        map[idx].road = true
-        map[idx].dirs or= {}
-        unless map[idx].dirs[dir_opposite(d)]
-          didCost = true
-        map[idx].dirs[dir_opposite(d)] = true
-
-        if didCost
-          money -= roadCost
-      
-      buildRoads!
-
-  text = "started #{startedAt.hour}:#{startedAt.min}:#{startedAt.sec} | step #{stepIndex} | money $#{money}"
+  updateRoadBuilding lastHovered, hovered
+  -- text = "started #{startedAt.hour}:#{startedAt.min}:#{startedAt.sec} | step #{stepIndex} | money $#{money}"
 
 updateSim = (dt) ->
   roundTicks += dt
@@ -322,7 +346,7 @@ buildUI = ->
       loc: "palette"
       icon: images.roads["road-left-right"]
       onclick: (->
-        currentBuilding = nil
+        currentTool = "road"
       )
     }
     table.insert uiObjects, obj
@@ -332,28 +356,13 @@ buildUI = ->
       loc: "palette"
       icon: images.buildings[b.name]
       onclick: (->
+        currentTool = "building"
         currentBuilding = b
       )
     }
     unless obj.icon 
       error("could not find icon for building #{b}")
     table.insert uiObjects, obj
-    -- io.write "added building #{b}, now has #{#uiObjects} ui objects\n"
-
-  for i=1,numCols
-    for j=1,numRows
-      if c = map[i+(j-1)*numCols]
-        obj = {
-          :i, :j
-          loc: "map"
-          building: c.building
-        }
-        if c.road
-          obj.roadIcon = images.roads[c.road]
-        if c.building
-          obj.icon = images.buildings[c.building.name]
-
-        table.insert uiObjects, obj
 
   for i=1,numCols
     for j=1,numRows
@@ -363,13 +372,38 @@ buildUI = ->
         meta: true
         icon: images.buttons.slot
         onclick: (->
-          if currentBuilding
-            idx = i+(j-1)*numCols
-            map[idx] or= {}
-            map[idx].building = currentBuilding
-            buildUI!
+          switch currentTool
+            when "road"
+              nil -- muffin
+            when "building"
+              idx = i+(j-1)*numCols
+              if map[idx] and map[idx].protected
+                return
+              if isShiftDown!
+                map[idx].building = nil
+                buildUI!
+              else
+                map[idx] or= {}
+                map[idx].building = currentBuilding
+                buildUI!
         )
       }
+
+  for i=1,numCols
+    for j=1,numRows
+      if c = map[i+(j-1)*numCols]
+        obj = {
+          :i, :j
+          loc: "map"
+          building: c.building
+          protected: c.protected
+        }
+        if c.road
+          obj.roadIcon = images.roads[c.road]
+        if c.building
+          obj.icon = images.buildings[c.building.name]
+
+        table.insert uiObjects, obj
 
   -- now do layout
   do
@@ -413,9 +447,6 @@ buildUI = ->
           error "unknown location #{obj.loc}"
 
 love.load = ->
-  for i=1,numCols*numRows
-    map[i] = nil
-
   mouse.setVisible false
   startedAt = os.date '*t' 
   font = graphics.newFont "fonts/BeggarsExtended.ttf", 28
@@ -465,6 +496,56 @@ love.load = ->
     }
   }
 
+  for i=1,numCols*numRows
+    map[i] = {}
+
+  builtins = {
+    {i: 3, j: 4, building: findBuilding("terrain", "city")}
+
+    ----
+
+    {i: 5, j: 3, building: findBuilding("terrain", "mountains")}
+    {i: 5, j: 4, building: findBuilding("terrain", "mountains")}
+    {i: 5, j: 5, building: findBuilding("terrain", "mountains")}
+
+    {i: 6, j: 3, building: findBuilding("terrain", "mountains")}
+    {i: 6, j: 4, building: findBuilding("terrain", "mountains")}
+    {i: 6, j: 5, building: findBuilding("terrain", "mountains")}
+
+    {i: 7, j: 3, building: findBuilding("terrain", "mountains")}
+    {i: 7, j: 4, building: findBuilding("terrain", "mountains")}
+
+    ----
+
+    {i: 9, j: 3, building: findBuilding("terrain", "mountains")}
+    {i: 9, j: 4, building: findBuilding("terrain", "mountains")}
+
+    {i: 10, j: 3, building: findBuilding("terrain", "mountains")}
+    {i: 10, j: 4, building: findBuilding("terrain", "mountains")}
+
+    {i: 11, j: 3, building: findBuilding("terrain", "mountains")}
+    {i: 11, j: 4, building: findBuilding("terrain", "mountains")}
+
+    {i: 12, j: 3, building: findBuilding("terrain", "mountains")}
+    {i: 12, j: 4, building: findBuilding("terrain", "mountains")}
+    {i: 12, j: 5, building: findBuilding("terrain", "mountains")}
+
+    {i: 10, j: 2, building: findBuilding("mine", "diamond")}
+    {i: 10, j: 7, building: findBuilding("mine", "gold")}
+  }
+
+  for b in *builtins
+    {:i, :j, :building} = b
+    idx = i+(j-1)*numCols
+    c = {
+      :i, :j
+      :building
+      protected: true
+    }
+    io.write("built-in #{building.name} at #{i}, #{j}\n")
+    map[idx] = c
+  buildRoads!
+
   buildUI!
 
 drawFG = ->
@@ -479,8 +560,8 @@ drawUI = ->
   do 
     for obj in *uiObjects
       graphics.reset!
-      if obj.hover
-        graphics.setColor 0.4, 0.4, 1.0
+      if obj.hover and not obj.protected and obj.loc != "map"
+        graphics.setColor 0.8, 0.8, 1.0
       else
         graphics.setColor 1, 1, 1
       {:x, :y} = obj
@@ -497,40 +578,36 @@ drawUI = ->
         when "toolbar"
           graphics.draw images.buttonExtras.bg, x, y, angle, scale, scale
       if icon = obj.icon
-        if obj.loc == "map" and not obj.meta
-          graphics.draw images.buildings.bg, x, y, angle, scale, scale
+        -- if obj.loc == "map" and not obj.meta
+        --   graphics.draw images.buildings.bg, x, y, angle, scale, scale
         graphics.draw icon, x, y, angle, scale, scale
       else if icon = obj.roadIcon
         graphics.draw icon, x, y, angle, scale, scale
-
-  -- do
-  --   half = slotSide / 2
-  --   for i=1,numCols
-  --     for j=1,numRows
-  --       if c = map[i+(j-1)*numCols]
-  --         if dirs = c.dirs
-  --           x, y = object_world_pos i, j
-  --           for d in pairs dirs
-  --             angle = dir_to_angle d
-  --             graphics.reset!
-  --             graphics.setColor 0.7, 0.7, 1
-  --             ox = half
-  --             oy = half
-  --             scale = 0.8
-  --             graphics.draw images.misc.arrow, x + half, y + half, angle, scale, scale, ox, oy
 
   do
     x, y = mouse.getPosition!
     graphics.reset!
     img = images.cursors[currentCursor]
     graphics.draw img, x, y
-    if currentBuilding
-      img = images.buildings[currentBuilding.name]
-      scale = 0.5
-      x += 16
-      y += 16
-      graphics.setColor 0.6, 1.0, 0.6, 0.8
-      graphics.draw img, x, y, 0, scale, scale
+
+    do
+      img = nil
+      switch currentTool
+        when "building"
+          if currentBuilding
+            img = images.buildings[currentBuilding.name]
+        when "road"
+          img = images.roads["road-left-right"]
+
+      if img
+        scale = 0.5
+        x += 16
+        y += 16
+        if isShiftDown!
+          graphics.setColor 1.0, 0.6, 0.6, 1
+        else
+          graphics.setColor 0.6, 1.0, 0.6, 1
+        graphics.draw img, x, y, 0, scale, scale
 
 love.draw = ->
   drawFG!
