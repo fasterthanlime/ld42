@@ -1,5 +1,3 @@
-local lick = require("lick")
-lick.reset = true
 local graphics, mouse, keyboard, math
 do
   local _obj_0 = love
@@ -11,7 +9,7 @@ local constants = require("constants")
 local utils = require("utils")
 local log, Dir
 log, Dir = utils.log, utils.Dir
-local state = require("state")
+local make_state = require("make_state")
 local imgs = require("imgs")
 local buildings = require("buildings")
 local units = require("units")
@@ -21,6 +19,7 @@ local build_ui = require("build_ui")
 local draw_ui = require("draw_ui")
 local draw_units = require("draw_units")
 local draw_mouse = require("draw_mouse")
+local state = nil
 local main = { }
 main.do_step = function()
   state.sim.step = state.sim.step + 1
@@ -64,7 +63,7 @@ main.update_ui = function()
     main.autotile_roads()
   end
   local start = state.started_at
-  state.ui.status_text = "started " .. tostring(start.hour) .. ":" .. tostring(start.min) .. ":" .. tostring(start.sec) .. " | step " .. tostring(state.sim.step) .. " | money $" .. tostring(state.money)
+  state.ui.main_text = "started " .. tostring(start.hour) .. ":" .. tostring(start.min) .. ":" .. tostring(start.sec) .. " | step " .. tostring(state.sim.step) .. " | money $" .. tostring(state.money)
 end
 main.update_sim = function(dt)
   state.sim.ticks = state.sim.ticks + dt
@@ -103,7 +102,11 @@ love.mousepressed = function(x, y, button, istouch, presses)
             end
             if ret.autotile_roads then
               log("autotiling roads after onclick")
-              return main.autotile_roads()
+              main.autotile_roads()
+            end
+            if ret.restart then
+              log("restarting after onclick")
+              return main.start()
             end
           end
         end
@@ -135,6 +138,10 @@ love.load = function()
   io.stdout:setvbuf("no")
   mouse.setVisible(false)
   imgs.load_all()
+  return main.start()
+end
+main.start = function()
+  state = make_state()
   state.started_at = os.date('*t')
   utils.each_map_index(function(i, j)
     log("preparing cell at " .. tostring(i) .. ", " .. tostring(j))

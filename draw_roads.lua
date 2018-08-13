@@ -39,17 +39,20 @@ draw_roads = function(state, old_hover, new_hover)
   end
   log("old_idx = " .. tostring(old_idx) .. ", new_idx = " .. tostring(new_idx))
   local did_cost = false
+  local od = utils.dir_opposite(d)
   if utils.is_shift_down() then
-    local c1 = utils.remove_dir(old_c, d)
-    local c2 = utils.remove_dir(new_c, utils.dir_opposite(d))
-    if c1 or c2 then
-      state.money = state.money - constants.destruction_cost
+    if utils.has_dir(old_c, d) or utils.has_dir(new_c, od) then
+      if utils.spend(state, constants.destruction_cost, "destroy roads") then
+        utils.remove_dir(old_c, d)
+        utils.remove_dir(new_c, od)
+      end
     end
   else
-    local c1 = utils.add_dir(old_c, d)
-    local c2 = utils.add_dir(new_c, utils.dir_opposite(d))
-    if c1 or c2 then
-      state.money = state.money - constants.road_cost
+    if not (utils.has_dir(old_c, d) and utils.has_dir(new_c, od)) then
+      if utils.spend(state, constants.road_cost, "build roads") then
+        utils.add_dir(old_c, d)
+        utils.add_dir(new_c, od)
+      end
     end
   end
   return true

@@ -21,7 +21,7 @@ constants.map = {
 }
 constants.step_duration = .5
 constants.start_money = 2000
-constants.road_cost = 20
-constants.destruction_cost = 10
+constants.road_cost = 150
+constants.destruction_cost = 300
 constants.PI = 3.14159265
 return constants

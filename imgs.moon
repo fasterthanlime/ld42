@@ -28,6 +28,7 @@ to_load = {
   {"buildings", "tree"}
   {"buildings", "wires"}
 
+  {"buttons", "restart"}
   {"buttons", "button-bg"}
   {"buttons", "pause"}
   {"buttons", "play"}

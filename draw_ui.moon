@@ -7,7 +7,8 @@ constants = require "constants"
 draw_ui = (state) ->
   graphics.reset!
   graphics.setColor 1, 1, 1
-  graphics.print state.ui.status_text, 20, constants.screen_h-30
+  graphics.print state.ui.main_text, 20, constants.screen_h-40
+  graphics.print state.ui.status_text, 20, constants.screen_h-20
 
   do 
     for obj in *state.ui.objects

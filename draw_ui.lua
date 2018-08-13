@@ -10,7 +10,8 @@ local draw_ui
 draw_ui = function(state)
   graphics.reset()
   graphics.setColor(1, 1, 1)
-  graphics.print(state.ui.status_text, 20, constants.screen_h - 30)
+  graphics.print(state.ui.main_text, 20, constants.screen_h - 40)
+  graphics.print(state.ui.status_text, 20, constants.screen_h - 20)
   do
     local _list_0 = state.ui.objects
     for _index_0 = 1, #_list_0 do

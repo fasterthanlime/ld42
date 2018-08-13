@@ -152,5 +152,18 @@ utils.remove_dir = (c, d) ->
   c.dirs[d] = nil
   changed
 
+-------------------
+-- money stuff
+-------------------
+
+utils.spend = (state, amount, action) ->
+  if state.money > amount
+    state.money -= amount
+    state.ui.status_text = "just spent $#{amount} to #{action}, cash left: $#{state.money}"
+    true
+  else
+    state.ui.status_text = "can't afford to spend $#{amount} to #{action}"
+    false
+
 utils
 

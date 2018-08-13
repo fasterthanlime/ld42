@@ -27,20 +27,20 @@ draw_roads = (state, old_hover, new_hover) ->
 
   did_cost = false
 
+  od = utils.dir_opposite(d)
+
   if utils.is_shift_down!
     -- delete roads
-    c1 = utils.remove_dir old_c, d
-    c2 = utils.remove_dir new_c, utils.dir_opposite(d)
-
-    if c1 or c2
-      state.money -= constants.destruction_cost
+    if utils.has_dir(old_c, d) or utils.has_dir(new_c, od)
+      if utils.spend state, constants.destruction_cost, "destroy roads"
+        utils.remove_dir old_c, d
+        utils.remove_dir new_c, od
   else
     -- add roads
-    c1 = utils.add_dir old_c, d
-    c2 = utils.add_dir new_c, utils.dir_opposite(d)
-
-    if c1 or c2
-      state.money -= constants.road_cost
+    if not (utils.has_dir(old_c, d) and utils.has_dir(new_c, od))
+      if utils.spend state, constants.road_cost, "build roads"
+        utils.add_dir old_c, d
+        utils.add_dir new_c, od
   return true
 
 draw_roads

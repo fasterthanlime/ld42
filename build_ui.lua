@@ -27,6 +27,16 @@ local standard_buttons = {
         build_ui = true
       }
     end)
+  },
+  restart = {
+    loc = "toolbar",
+    icon = "restart",
+    onclick = (function(state)
+      log("restarting")
+      return {
+        restart = true
+      }
+    end)
   }
 }
 local build_ui
@@ -37,6 +47,7 @@ build_ui = function(state)
   else
     table.insert(objects, standard_buttons.pause)
   end
+  table.insert(objects, standard_buttons.restart)
   do
     local obj = {
       loc = "palette",
@@ -106,30 +117,36 @@ build_ui = function(state)
             return nil
           elseif "unit" == _exp_0 then
             if state.tool.unit then
-              return table.insert(state.map.units, {
-                i = i,
-                j = j,
-                d = Dir.u,
-                angle = 0,
-                unit = state.tool.unit
-              })
+              if utils.spend(state, state.tool.unit.cost, "purchase " .. tostring(state.tool.unit.name)) then
+                return table.insert(state.map.units, {
+                  i = i,
+                  j = j,
+                  d = Dir.u,
+                  angle = 0,
+                  unit = state.tool.unit
+                })
+              end
             end
           elseif "building" == _exp_0 then
             local idx = utils.ij_to_index(i, j)
             local c = state.map.cells[idx]
-            if c and c.protected then
+            if c.protected then
               return 
             end
-            if utils.is_shift_down() then
-              c.building = nil
-              return {
-                build_ui = true
-              }
+            if utils.is_shift_down() and c.building then
+              if utils.spend(state, constants.destruction_cost, "destroy building") then
+                c.building = nil
+                return {
+                  build_ui = true
+                }
+              end
             else
-              c.building = state.tool.building
-              return {
-                build_ui = true
-              }
+              if utils.spend(state, state.tool.building.cost, "build " .. tostring(state.tool.building.name)) then
+                c.building = state.tool.building
+                return {
+                  build_ui = true
+                }
+              end
             end
           end
         end)

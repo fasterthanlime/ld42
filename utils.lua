@@ -189,4 +189,14 @@ utils.remove_dir = function(c, d)
   c.dirs[d] = nil
   return changed
 end
+utils.spend = function(state, amount, action)
+  if state.money > amount then
+    state.money = state.money - amount
+    state.ui.status_text = "just spent $" .. tostring(amount) .. " to " .. tostring(action) .. ", cash left: $" .. tostring(state.money)
+    return true
+  else
+    state.ui.status_text = "can't afford to spend $" .. tostring(amount) .. " to " .. tostring(action)
+    return false
+  end
+end
 return utils

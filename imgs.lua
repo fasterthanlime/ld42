@@ -85,6 +85,10 @@ local to_load = {
   },
   {
     "buttons",
+    "restart"
+  },
+  {
+    "buttons",
     "button-bg"
   },
   {

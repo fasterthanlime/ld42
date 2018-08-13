@@ -1,7 +1,3 @@
--- auto-refresh
-lick = require "lick"
-lick.reset = true -- reload game every time it's compiled
-
 -- love2d
 import graphics, mouse, keyboard, math from love
 
@@ -13,7 +9,7 @@ pprint = require "pprint"
 constants = require "constants"
 utils = require "utils"
 {:log, :Dir} = utils
-state = require "state"
+make_state = require "make_state"
 imgs = require "imgs"
 buildings = require "buildings"
 units = require "units"
@@ -26,6 +22,8 @@ draw_ui = require "draw_ui"
 draw_units = require "draw_units"
 draw_mouse = require "draw_mouse"
 
+-- globals!
+state = nil
 main = {}
 
 main.do_step = ->
@@ -63,7 +61,7 @@ main.update_ui = ->
     main.autotile_roads!
 
   start = state.started_at
-  state.ui.status_text = "started #{start.hour}:#{start.min}:#{start.sec} | step #{state.sim.step} | money $#{state.money}"
+  state.ui.main_text = "started #{start.hour}:#{start.min}:#{start.sec} | step #{state.sim.step} | money $#{state.money}"
 
 main.update_sim = (dt) ->
   state.sim.ticks += dt
@@ -93,6 +91,9 @@ love.mousepressed = (x, y, button, istouch, presses) ->
         if ret.autotile_roads
           log "autotiling roads after onclick"
           main.autotile_roads!
+        if ret.restart
+          log "restarting after onclick"
+          main.start!
 
 love.mousereleased = (x, y, button, istouch, presses) ->
   state.ui.pressed = false
@@ -117,6 +118,11 @@ love.load = ->
   mouse.setVisible false
 
   imgs.load_all!
+
+  main.start!
+
+main.start = ->
+  state = make_state!
   state.started_at = os.date '*t' 
 
   utils.each_map_index (i, j) ->

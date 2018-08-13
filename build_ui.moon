@@ -25,6 +25,14 @@ standard_buttons = {
       return {build_ui: true}
     )
   }
+  restart: {
+    loc: "toolbar"
+    icon: "restart"
+    onclick: ((state) ->
+      log "restarting"
+      return {restart: true}
+    )
+  }
 }
 
 -- React-ish 'render' method, rebuilds `state.ui.objects` from
@@ -35,11 +43,18 @@ standard_buttons = {
 build_ui = (state) ->
   objects = {}
 
+  --------------------------------
+  -- toolbar
+  --------------------------------
   if state.sim.paused
     table.insert objects, standard_buttons.play
   else
     table.insert objects, standard_buttons.pause
+  table.insert objects, standard_buttons.restart
 
+  --------------------------------
+  -- palette
+  --------------------------------
   do
     obj = {
       loc: "palette"
@@ -75,6 +90,9 @@ build_ui = (state) ->
     }
     table.insert objects, obj
 
+  --------------------------------
+  -- map
+  --------------------------------
   for i=1,constants.num_cols
     for j=1,constants.num_rows
       table.insert objects, {
@@ -90,22 +108,25 @@ build_ui = (state) ->
               nil -- muffin
             when "unit"
               if state.tool.unit
-                table.insert state.map.units, {
-                  :i, :j
-                  d: Dir.u
-                  angle: 0
-                  unit: state.tool.unit
-                }
+                if utils.spend state, state.tool.unit.cost, "purchase #{state.tool.unit.name}"
+                  table.insert state.map.units, {
+                    :i, :j
+                    d: Dir.u
+                    angle: 0
+                    unit: state.tool.unit
+                  }
             when "building"
               idx = utils.ij_to_index i, j
               c = state.map.cells[idx]
-              return if c and c.protected
-              if utils.is_shift_down!
-                c.building = nil
-                return {build_ui: true}
+              return if c.protected
+              if utils.is_shift_down! and c.building
+                if utils.spend state, constants.destruction_cost, "destroy building"
+                  c.building = nil
+                  return {build_ui: true}
               else
-                c.building = state.tool.building
-                return {build_ui: true}
+                if utils.spend state, state.tool.building.cost, "build #{state.tool.building.name}"
+                  c.building = state.tool.building
+                  return {build_ui: true}
         )
       }
 
