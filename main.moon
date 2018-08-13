@@ -1,8 +1,8 @@
 lick = require "lick"
 lick.reset = true -- reload game every time it's compiled
 
-import CheckCollision from require "utils"
-import graphics, mouse, keyboard from love
+import CheckCollision, log from require "utils"
+import graphics, mouse, keyboard, math from love
 
 local buildUI
 local newImage
@@ -223,6 +223,18 @@ dir_opposite = (d) ->
     when dir.d then dir.u
     else 0
 
+random_dir = ->
+  x = math.random!
+  switch true
+    when x < 0.25
+      dir.l
+    when x < 0.5
+      dir.r
+    when x < 0.75
+      dir.u
+    else
+      dir.d
+
 dirs_to_road = (dirs) ->
   name = "road"
   if dirs[dir.l]
@@ -248,6 +260,15 @@ uiObjectTouchesMouse = (obj) ->
 
 step = ->
   stepIndex += 1
+
+  log "stepping!"
+  for u in *mapUnits
+    d = random_dir!
+    {diffI, diffJ} = dir_to_vec d
+    log "diffI = #{diffI}, diffJ = #{diffJ}!"
+    u.i += diffI
+    u.j += diffJ
+    io.flush!
 
 isShiftDown = ->
   keyboard.isDown("lshift") or keyboard.isDown("rshift")
@@ -323,8 +344,8 @@ updateUI = ->
 
 updateSim = (dt) ->
   roundTicks += dt
-  if roundTicks > 0.1
-    roundTicks -= 0.1
+  if roundTicks > 1
+    roundTicks -= 1
     step()
 
 love.update = (dt) ->
@@ -484,7 +505,12 @@ buildUI = ->
           error "unknown location #{obj.loc}"
 
 love.load = ->
+  -- works around stdout not flushing on windows
+  io.stdout\setvbuf "no"
+
+  -- we have our own pointer
   mouse.setVisible false
+
   startedAt = os.date '*t' 
   font = graphics.newFont "fonts/BeggarsExtended.ttf", 28
 
@@ -584,7 +610,7 @@ love.load = ->
       :building
       protected: true
     }
-    io.write("built-in #{building.name} at #{i}, #{j}\n")
+    log "built-in #{building.name} at #{i}, #{j}"
     map[idx] = c
   buildRoads!
 
@@ -681,5 +707,5 @@ newImage = (path) ->
   img = graphics.newImage path
   unless img
     error("image not found: #{img}")
-  io.write "loaded #{path}\n"
+  log "loaded #{path}"
   img
