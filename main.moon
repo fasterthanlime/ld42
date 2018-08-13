@@ -1,522 +1,102 @@
+-- auto-refresh
 lick = require "lick"
 lick.reset = true -- reload game every time it's compiled
 
-import CheckCollision, log from require "utils"
+-- love2d
 import graphics, mouse, keyboard, math from love
+
+-- external modules
 tween = require "tween"
 
-local buildUI
-local newImage
-local buildRoads
+-- our own modules
+constants = require "constants"
+utils = require "utils"
+{:log, :Dir} = utils
+state = require "state"
+imgs = require "imgs"
+buildings = require "buildings"
+units = require "units"
 
-stepDuration = .5 -- in seconds
+-- important functions
+draw_roads = require "draw_roads"
+build_ui = require "build_ui"
 
-numCols = 14
-numRows = 10
-slotSide = 60
+main = {}
 
-unitSide = 30
-
-mapUnits = {}
-
-initialMapX = 0
-initialMapY = 60
-
-screenWidth = 1200
-screenHeight = 700
-
-initialPaletteX = 10
-paletteItemsPerRow = 4
-paletteItemSide = 40
-paletteItemSpacing = 15
-paletteTotalWidth = initialPaletteX + (paletteItemSide+paletteItemSpacing) * paletteItemsPerRow + 30
-
-text = ""
-startedAt = nil
-font = nil
-paused = true
-roundTicks = 0
-stepIndex = 0
-buildingTab = "infra"
-hasHover = false
-
-money = 2000
-
-pressed = false
-hovered = nil
-
-roadCost = 20
-destructionCost = 10
-
-map = {}
-
-uiObjects = {}
-
-cursors = {
-  "pointer"
-  "hand"
-  "tri-bottomleft"
-  "tri-bottomright"
-}
-currentCursor = "pointer"
-currentBuilding = nil
-currentUnit = nil
-currentTool = "road"
-
-buttons = {
-  "play"
-  "pause"
-  "slot"
-}
-buttonExtras = {
-  "toolbar"
-  "bg"
-}
-
-buildings = {
-  infra: {
-    {
-      name: "wires"
-      price: 800
-    }
-    {
-      name: "plastic"
-      price: 800
-    }
-    {
-      name: "jewelry"
-      price: 800
-    }
-    {
-      name: "toys"
-      price: 800
-    }
-    {
-      name: "microchips"
-      price: 800
-    }
-  }
-
-  mine: {
-    {
-      name: "oil"
-      price: 800
-    }
-    {
-      name: "copper"
-      price: 800
-    }
-    {
-      name: "gold"
-      price: 800
-    }
-    {
-      name: "diamond"
-      price: 800
-    }
-  }
-
-  misc: {
-    {
-      name: "cross"
-      price: 0
-    }
-    {
-      name: "bg"
-      price: 0
-    }
-  }
-
-  terrain: {
-    {
-      name: "city"
-      price: 0
-    }
-    {
-      name: "mountains"
-      price: 0
-      terrain: true
-    }
-  }
-}
-
-units = {
-  {
-    name: "jeep"
-    price: 1000
-  }
-  {
-    name: "van"
-    price: 2500
-  }
-  {
-    name: "truck"
-    price: 8000
-  }
-}
-
-findBuilding = (cat, name) ->
-  for b in *buildings[cat]
-    if b.name == name
-      return b
-  nil
-
-misc = {
-  "arrow"
-}
-
-roads = {
-  "road"
-  "road-down"
-  "road-left"
-  "road-left-down"
-  "road-left-right"
-  "road-left-right-down"
-  "road-left-right-up"
-  "road-left-right-up-down"
-  "road-left-up"
-  "road-left-up-down"
-  "road-right"
-  "road-right-down"
-  "road-right-up"
-  "road-right-up-down"
-  "road-up"
-  "road-up-down"
-}
-
-dir = {
-  l: {-1, 0},
-  r: {1, 0},
-  u: {0, -1},
-  d: {0, 1},
-}
-
-PI = 3.14159265 -- that's all I can remember tonight
-
-dir_to_vec = (d) ->
-  switch d
-    when dir.l then {-1, 0}
-    when dir.r then {1, 0}
-    when dir.u then {0, -1}
-    when dir.d then {0, 1}
-    else {0, 0}
-
--- assuming the sprite points up
-dir_to_angle = (d) ->
-  switch d
-    when dir.l then -PI/2
-    when dir.r then PI/2
-    when dir.d then PI
-    when dir.u then 0
-    else 0
-
-vec_to_dir = (x, y) ->
-  switch true
-    when x == -1 and y == 0 then dir.l
-    when x == 1 and y == 0 then dir.r
-    when x == 0 and y == -1 then dir.u
-    when x == 0 and y == 1 then dir.d
-    else nil
-
-dir_opposite = (d) ->
-  switch d
-    when dir.l then dir.r
-    when dir.r then dir.l
-    when dir.u then dir.d
-    when dir.d then dir.u
-    else 0
-
-random_dir = ->
-  x = math.random!
-  switch true
-    when x < 0.25
-      dir.l
-    when x < 0.5
-      dir.r
-    when x < 0.75
-      dir.u
-    else
-      dir.d
-
-dirs_to_road = (dirs) ->
-  name = "road"
-  if dirs[dir.l]
-    name = "#{name}-left"
-  if dirs[dir.r]
-    name = "#{name}-right"
-  if dirs[dir.u]
-    name = "#{name}-up"
-  if dirs[dir.d]
-    name = "#{name}-down"
-  return name
-
-object_world_pos = (i, j) ->
-  x = initialMapX + i * slotSide
-  y = initialMapY + (j-1) * slotSide
-  return x, y
-
-images = {}
-
-uiObjectTouchesMouse = (obj) ->
-  x, y = mouse.getPosition!
-  CheckCollision(x-2, y-2, 4, 4, obj.x, obj.y, obj.w, obj.h)
-
-step = ->
-  stepIndex += 1
+main.do_step = ->
+  state.sim.step += 1
 
   log "stepping!"
-  for u in *mapUnits
-    d = random_dir!
-    {diffI, diffJ} = dir_to_vec d
-    log "diffI = #{diffI}, diffJ = #{diffJ}!"
+  for u in *state.map.units
+    d = utils.random_dir!
+    {diff_i, diff_j} = utils.dir_to_vec d
     u.d = d
-    u.angle = dir_to_angle d
-    u.tween = tween.new stepDuration, u, {
-      i: u.i + diffI,
-      j: u.j + diffJ,
-      -- angle: dir_to_angle(d)
+    u.angle = utils.dir_to_angle d
+    u.tween = tween.new constants.step_duration, u, {
+      i: u.i + diff_i,
+      j: u.j + diff_j,
     }
 
-isShiftDown = ->
-  keyboard.isDown("lshift") or keyboard.isDown("rshift")
+main.update_ui = ->
+  -- find hovered objects
+  old_hover = state.ui.hovered
+  state.ui.hovered = nil
+  for obj in *state.ui.objects
+    if obj.hover = utils.is_ui_object_hovered obj
+      state.ui.hovered = obj
 
-updateRoadBuilding = (oldHover, newHover) ->
-  return unless currentTool == "road"
-  return unless pressed
-  return unless oldHover and newHover
-  return if oldHover == newHover
-
-  diffI = newHover.i - oldHover.i
-  diffJ = newHover.j - oldHover.j
-  d = vec_to_dir diffI, diffJ
-  return unless d
-
-  {x, y} = dir_to_vec(d)
-  oldIdx = oldHover.i + (oldHover.j-1) * numCols
-  newIdx = newHover.i + (newHover.j-1) * numCols
-
-  oldC = map[oldIdx]
-  newC = map[newIdx]
-
-  return if newC.building and newC.building.terrain
-  return if oldC.building and oldC.building.terrain
-
-  didCost = false
-
-  if isShiftDown!
-    -- delete roads
-    if map[oldIdx] and map[oldIdx].dirs and map[oldIdx].dirs[d]
-      didCost = true
-      map[oldIdx].dirs[d] = nil
-    if map[newIdx] and map[newIdx].dirs and map[newIdx].dirs[dir_opposite(d)]
-      didCost = true
-      map[newIdx].dirs[dir_opposite(d)] = nil
-
-    if didCost
-      money -= destructionCost
+  if state.ui.hovered
+    state.ui.cursor = "hand"
   else
-    -- add roads
-    map[oldIdx] or= {}
-    map[oldIdx].road = true
-    map[oldIdx].dirs or= {}
-    unless map[oldIdx].dirs[d]
-      didCost = true
-    map[oldIdx].dirs[d] = true
+    state.ui.cursor = "pointer"
 
-    map[newIdx] or= {}
-    map[newIdx].road = true
-    map[newIdx].dirs or= {}
-    unless map[newIdx].dirs[dir_opposite(d)]
-      didCost = true
-    map[newIdx].dirs[dir_opposite(d)] = true
+  -- draw roads if necessary
+  if draw_roads state, old_hover, new_hover
+    main.autotile_roads!
 
-    if didCost
-      money -= roadCost
-  
-  buildRoads!
+  state.ui.status_text = "started #{startedAt.hour}:#{startedAt.min}:#{startedAt.sec} | step #{stepIndex} | money $#{money}"
 
-updateUI = ->
-  lastHovered = hovered
-  hovered = nil
-  for obj in *uiObjects
-    if obj.hover = uiObjectTouchesMouse(obj)
-      hovered = obj
-  if hovered
-    currentCursor = "hand"
-  else
-    currentCursor = "pointer"
+main.update_sim = (dt) ->
+  state.sim.ticks += dt
+  if state.sim.ticks > constants.step_duration
+    state.sim.ticks -= constants.step_duration
+    main.do_step!
 
-  updateRoadBuilding lastHovered, hovered
-  text = "started #{startedAt.hour}:#{startedAt.min}:#{startedAt.sec} | step #{stepIndex} | money $#{money}"
-
-updateSim = (dt) ->
-  for u in *mapUnits
+  for u in *state.map.units
     if u.tween
       if u.tween\update dt
         u.tween = nil
 
-  roundTicks += dt
-  if roundTicks > stepDuration
-    roundTicks -= stepDuration
-    step()
-
 love.update = (dt) ->
   unless paused
-    updateSim dt
-  updateUI!
+    main.update_sim dt
+  main.update_ui!
 
 love.mousepressed = (x, y, button, istouch, presses) ->
-  pressed = true 
+  state.ui.pressed = true 
 
-  for obj in *uiObjects
-    if uiObjectTouchesMouse(obj) and obj.onclick
-      obj.onclick!
-      return
+  if state.ui.hovered and state.ui.hovered.onclick
+    if ret = state.ui.hovered.onclick state
+      if ret.build_ui
+        main.build_ui!
+      if ret.autotile_roads!
+        main.autotile_roads!
 
 love.mousereleased = (x, y, button, istouch, presses) ->
-  pressed = false
+  state.ui.pressed = false
 
 local standardButtons
 
-buildRoads = ->
-  for i=1,numCols
-    for j=1,numRows
-      if c = map[i+(j-1)*numCols]
-        if c.road and c.dirs
-          c.road = dirs_to_road c.dirs
-  buildUI!
+main.build_ui = ->
+  build_ui state
 
-buildUI = ->
-  uiObjects = {}
-
-  if paused
-    table.insert uiObjects, standardButtons.play
-  else
-    table.insert uiObjects, standardButtons.pause
-
-  do
-    obj = {
-      loc: "palette"
-      icon: images.roads["road-left-right"]
-      onclick: (->
-        currentTool = "road"
-      )
-    }
-    table.insert uiObjects, obj
-
-  for b in *(buildings[buildingTab])
-    obj = {
-      loc: "palette"
-      icon: images.buildings[b.name]
-      onclick: (->
-        currentTool = "building"
-        currentBuilding = b
-      )
-    }
-    unless obj.icon 
-      error("could not find icon for building #{b}")
-    table.insert uiObjects, obj
-
-  for u in *units
-    obj = {
-      loc: "palette"
-      icon: images.units[u.name]
-      onclick: (->
-        currentTool = "unit"
-        currentUnit = u
-      )
-    }
-    table.insert uiObjects, obj
-
-  for i=1,numCols
-    for j=1,numRows
-      table.insert uiObjects, {
-        :i, :j
-        loc: "map"
-        meta: true
-        icon: images.buttons.slot
-        onclick: (->
-          switch currentTool
-            when "road"
-              nil -- muffin
-            when "unit"
-              if currentUnit
-                table.insert mapUnits, {
-                  :i, :j
-                  d: dir.u
-                  angle: 0
-                  unit: currentUnit
-                }
-            when "building"
-              idx = i+(j-1)*numCols
-              if map[idx] and map[idx].protected
-                return
-              if isShiftDown!
-                map[idx].building = nil
-                buildUI!
-              else
-                map[idx] or= {}
-                map[idx].building = currentBuilding
-                buildUI!
-        )
-      }
-
-  for i=1,numCols
-    for j=1,numRows
-      if c = map[i+(j-1)*numCols]
-        obj = {
-          :i, :j
-          loc: "map"
-          building: c.building
-          protected: c.protected
-        }
-        if c.road
-          obj.roadIcon = images.roads[c.road]
-        if c.building
-          obj.icon = images.buildings[c.building.name]
-
-        table.insert uiObjects, obj
-
-  -- now do layout
-  do
-    toolbarX = 10
-    toolbarY = 10
-        
-    paletteBaseX = screenWidth - paletteTotalWidth
-    paletteX = initialPaletteX
-    paletteY = 100
-    paletteN = 0
-
-    for i, obj in ipairs uiObjects
-      unless obj
-        error("uiObject #{i} is nil")
-
-      obj.hover = false
-
-      switch obj.loc
-        when "toolbar"
-          obj.x = toolbarX
-          obj.y = toolbarY
-          obj.w = 40
-          obj.h = 40
-          toolbarX += 50
-        when "palette"
-          obj.x = paletteX + paletteBaseX
-          obj.y = paletteY
-          obj.w = paletteItemSide
-          obj.h = paletteItemSide
-
-          paletteN += 1
-          paletteX += paletteItemSide + paletteItemSpacing
-          if paletteN >= paletteItemsPerRow
-            paletteN = 0
-            paletteX = initialPaletteX
-            paletteY += paletteItemSide + paletteItemSpacing
-        when "map"
-          obj.x, obj.y = object_world_pos obj.i, obj.j
-          obj.w, obj.h = slotSide, slotSide
-        else
-          error "unknown location #{obj.loc}"
+-- picks the right sprite to display for roads
+main.autotile_roads = ->
+  utils.each_map_index (i, j) ->
+    if c = map[i+(j-1)*num_cols]
+      if c.road and c.dirs
+        c.road = dirs_to_road c.dirs
+  main.build_ui!
 
 love.load = ->
   -- works around stdout not flushing on windows
@@ -526,59 +106,8 @@ love.load = ->
   mouse.setVisible false
 
   startedAt = os.date '*t' 
-  font = graphics.newFont "fonts/BeggarsExtended.ttf", 28
 
-  images.cursors = {}
-  for k in *cursors
-    images.cursors[k] = newImage "art/cursors/#{k}.png"
-
-  images.buttons = {}
-  for k in *buttons
-    images.buttons[k] = newImage "art/buttons/#{k}.png"
-
-  images.buttonExtras = {}
-  for k in *buttonExtras
-    images.buttonExtras[k] = newImage "art/buttons/#{k}.png"
-
-  images.buildings = {}
-  for cat, catBuildings in pairs buildings
-    for spec in *catBuildings
-      k = spec.name
-      images.buildings[k] = newImage "art/buildings/#{k}.png"
-
-  images.units = {}
-  for spec in *units
-    k = spec.name
-    images.units[k] = newImage "art/units/#{k}.png"
-
-  images.roads = {}
-  for k in *roads
-    images.roads[k] = newImage "art/roads/#{k}.png"
-
-  images.misc = {}
-  for k in *misc
-    images.misc[k] = newImage "art/misc/#{k}.png"
-
-  standardButtons = {
-    pause: {
-      loc: "toolbar"
-      icon: images.buttons.pause
-      onclick: (->
-        paused = true
-        buildUI!
-      )
-    }
-    play: {
-      loc: "toolbar"
-      icon: images.buttons.play
-      onclick: (->
-        paused = false
-        buildUI!
-      )
-    }
-  }
-
-  for i=1,numCols*numRows
+  for i=1,num_cols*num_rows
     map[i] = {}
 
   builtins = {
@@ -618,7 +147,7 @@ love.load = ->
 
   for b in *builtins
     {:i, :j, :building} = b
-    idx = i+(j-1)*numCols
+    idx = i+(j-1)*num_cols
     c = {
       :i, :j
       :building
